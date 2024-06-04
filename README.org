@@ -1,4 +1,4 @@
-#+TITLE: DumbStation-One
+#+TITLE: PSX-Go
 
 * Basic info stuff
 This is a basic WIP playstation one emulator written in Go that I'm working on
