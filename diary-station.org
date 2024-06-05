@@ -1,0 +1,9 @@
+#+TITLE: recording my instanity
+#+AUTHOR: Ornyx (duh)
+
+* Preface (so fancy omg)
+As is custom at this point this document will serve as a day to day recap of
+progress when i'm working on this emulator... Unless I forget, so like expect
+random jumps and stuff.
+
+But yeah, enjoy me slowly losing it

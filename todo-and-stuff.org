@@ -1,0 +1,45 @@
+#+TITLE: general todo's and stuff
+#+AUTHOR: Ornyx (again, duh)
+
+* Things to research
+** Pointer vs value
+Basically need to research if storing values as pointers is fine or should you
+use values, especially for long standing values
+*** Constructors
+Should a constructor return a value or a pointer to that instance
+#+begin_src go
+  type Foo struct{}
+
+  func NewFooVal() Foo {
+          return Foo{}
+  }
+
+  // vs
+
+  func NewFooPointer() *Foo {
+          return new(Foo)
+  }
+#+end_src
+which of these is better 
+
+*** Struct field
+Is it better for like a struct having another instance as a field to store that
+as a pointer or as a value
+#+begin_src go
+  type Foo struct{}
+
+  type BarVal struct{
+          foo Foo // as a value
+  }
+
+  type BarPoint struct {
+          foo *Foo // as a pointer
+  }
+#+end_src
+
+When these are allocated and shit which one is better, especially in the long run
+
+** Is grouping into structs fine
+basically I want to know if it's generally fine to store say for example 2
+values into a struct for easier debugging and shit or if that causes more shit
+to be allocated and what not.
