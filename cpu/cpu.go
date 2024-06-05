@@ -27,19 +27,21 @@ func NewCPU(bus *memory.Bus) *CPU {
 // Reset reset the cpu to its initial state
 func (cpu *CPU) Reset() {
 	cpu.pc = 0xbfc00000 // reset to beginning of the BIOS
+	cpu.regs = Registers{zero: 0} // TODO - probably reset to garbage but idc
 }
 
 // RunNextInstruction run the next instruction
 func (cpu *CPU) RunNextInstruction() {
-
 	instruction := cpu.load32(cpu.pc)
 	cpu.pc += 4 // increment pc by 4 bytes
-	cpu.decodeAndExecuteInstr(instruction)
+	cpu.decodeAndExecuteInstr(Instruction(instruction))
 }
 
 // decodeAndExecuteInstr decode and execute an instruction
-func (cpu *CPU) decodeAndExecuteInstr(instruction uint32) {
-	log.Panicf("Unkown instruction %x", instruction)
+func (cpu *CPU) decodeAndExecuteInstr(instruction Instruction) {
+	switch instruction.function() {
+	case 0b001111: 
+	}
 }
 
 // load32 Load and return the value at given address addr
