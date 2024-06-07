@@ -9,11 +9,12 @@ import (
 // the memory bus
 type Bus struct {
 	bios *Bios
+	ram Ram
 }
 
 // NewBus create and return a new bus object
 func NewBus(bios *Bios) *Bus {
-	return &Bus{bios: bios}
+	return &Bus{bios: bios, ram: NewRam()}
 }
 
 // Load32 load and return the value at addr on the bus
@@ -26,8 +27,12 @@ func (b *Bus) Load32(addr uint32) (uint32, error) {
 	if offset, contains := BIOS_RANGE.Contains(addr); contains {
 		return b.bios.load32(offset), nil
 	}
+
+	if offset, contains := RAM_RANGE.Contains(addr); contains {
+		return b.ram.load32(offset), nil
+	}
 	
-	return 0xF, fmt.Errorf("Unknown load32 at address %v", addr)
+	return 0xF, fmt.Errorf("Unknown load32 at address 0x%08x", addr)
 	
 }
 
@@ -56,6 +61,11 @@ func (b *Bus) Store32(addr, val uint32) error {
 			log.Info("Unhandled write to MEM_CONTROL register")
 		}
 
+		return nil
+	}
+
+	if offset, contains := RAM_RANGE.Contains(addr); contains {
+		b.ram.store32(offset, val)
 		return nil
 	}
 
