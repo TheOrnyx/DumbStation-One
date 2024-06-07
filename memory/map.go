@@ -14,7 +14,7 @@ var (
 
 // Contains whether or not addr is inside range
 func (r *Range) Contains(addr uint32) (uint32, bool) {
-	if addr >= r.start && addr <= r.start+r.length {
+	if addr >= r.start && addr < r.start+r.length {
 		return addr - r.start, true
 	} else {
 		return 0xfeed, false // yummy

@@ -30,6 +30,16 @@ func (cpu *CPU) Reset() {
 	log.Info("Reset CPU state")
 }
 
+// GetReg get the register at index - just calls the reg's method
+func (cpu *CPU) GetReg(index uint32) uint32 {
+	return cpu.regs.GetReg(index)
+}
+
+// SetReg sets the register at index to val - just calls the reg's method
+func (cpu *CPU) SetReg(index, val uint32) {
+	cpu.regs.SetReg(index, val)
+}
+
 // RunNextInstruction run the next instruction
 func (cpu *CPU) RunNextInstruction() {
 	instruction := cpu.load32(cpu.pc)
@@ -38,17 +48,33 @@ func (cpu *CPU) RunNextInstruction() {
 }
 
 // decodeAndExecuteInstr decode and execute an instruction
+// TODO - switch from binary to hex cuz nicer
 func (cpu *CPU) decodeAndExecuteInstr(instruction Instruction) {
 	switch instruction.function() {
-	case 0b001111:
+	case 0x00: // SPECIAL
+		cpu.executeSubInstr(instruction)
+	case 0x0f: // LUID
 		cpu.loadUpperImmediate(instruction)
-	case 0b001101:
+	case 0x0d: // ORI
 		cpu.orImmediate(instruction)
-	case 0b101011:
+	case 0x2b: // SW
 		cpu.storeWord(instruction)
+	case 0x09: // ADDIU
+		cpu.addImmediateUnsigned(instruction)
 	default:
-		
-		log.Panicf("Unknown instruction - %X", instruction)
+		log.Panicf("Unknown instruction - 0x%08x", instruction)
+	}
+}
+
+// executeSubInstr decode and execute sub instruction (special)
+//
+// NOTE - This is a seperate function cuz I didn't wanna have a like nested switch
+func (cpu *CPU) executeSubInstr(instruction Instruction)  {
+	switch instruction.subFunction() {
+	case 0x00: // shift left logical
+		cpu.shiftLeftLogical(instruction)
+	default:
+		log.Panicf("Unknown sub instruction - 0x%08x", instruction)
 	}
 }
 
@@ -66,6 +92,7 @@ func (cpu *CPU) load32(addr uint32) uint32 {
 func (cpu *CPU) Store32(addr, val uint32)  {
 	err := cpu.bus.Store32(addr, val)
 	if err != nil {
+		// log.Infof("%+v", cpu.regs)
 		log.Panicf("Store32 Failed - %v", err)
 	}
 }

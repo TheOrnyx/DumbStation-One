@@ -2,6 +2,8 @@ package memory
 
 import (
 	"fmt"
+
+	"github.com/TheOrnyx/psx-go/log"
 )
 
 // the memory bus
@@ -49,11 +51,11 @@ func (b *Bus) Store32(addr, val uint32) error {
 			}
 
 		default:
-			return fmt.Errorf("Unhandled write to MEM_CONTROL register")
+			log.Warnf("Unhandled write to MEM_CONTROL register")
 		}
 
 		return nil
 	}
 	
-	return fmt.Errorf("Haven't implemented writing to address %x with val %x", addr, val)
+	return fmt.Errorf("Haven't implemented writing to address 0x%08x with val 0x%08x", addr, val)
 }
