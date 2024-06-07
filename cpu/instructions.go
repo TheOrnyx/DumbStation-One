@@ -22,6 +22,13 @@ func (i Instruction) immediate16() uint32 {
 	return uint32(i) & 0xffff
 }
 
+// immediate16Se return immediate value in bits [16:0] as a
+// sign-extended 32 bit val
+func (i Instruction) immediate16Se() uint32 {
+	val := int16(i & 0xfff)
+	return uint32(val)
+}
+
 /////////////////////////////////////
 // The CPU instructions themselves //
 /////////////////////////////////////
@@ -48,6 +55,6 @@ func (cpu *CPU) storeWord(instr Instruction)  {
 	targetReg := instr.targetReg()
 	sourceReg := instr.sourceReg()
 
-	addr := cpu.regs.GetReg(sourceReg) + instr.immediate16()
+	addr := cpu.regs.GetReg(sourceReg) + instr.immediate16Se()
 	cpu.Store32(addr, cpu.regs.GetReg(targetReg))
 }

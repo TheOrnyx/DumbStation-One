@@ -27,6 +27,7 @@ func NewCPU(bus *memory.Bus) *CPU {
 func (cpu *CPU) Reset() {
 	cpu.pc = 0xbfc00000 // reset to beginning of the BIOS
 	cpu.regs = Registers{zero: 0} // TODO - probably reset to garbage but idc
+	log.Info("Reset CPU state")
 }
 
 // RunNextInstruction run the next instruction
