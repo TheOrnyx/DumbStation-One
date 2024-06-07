@@ -10,6 +10,7 @@ type Range struct {
 var (
 	BIOS_RANGE  = Range{start: 0xbfc00000, length: 512 * 1024}
 	MEM_CONTROL = Range{start: 0x1f801000, length: 36}
+	RAM_SIZE    = Range{start: 0x1f801060, length: 4} // guide says to ignore
 )
 
 // Contains whether or not addr is inside range

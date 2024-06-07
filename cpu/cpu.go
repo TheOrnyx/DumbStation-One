@@ -1,17 +1,18 @@
 package cpu
 
 import (
-	"github.com/TheOrnyx/psx-go/memory"
 	"github.com/TheOrnyx/psx-go/log"
+	"github.com/TheOrnyx/psx-go/memory"
 )
 
 // The CPU struct
 // NOTES -
 // All registers are 32-bits wide (uint32)
 type CPU struct {
-	pc   uint32    // The program counter
-	regs Registers // the rest of the registers
-	bus  *memory.Bus
+	pc              uint32    // The program counter
+	regs            Registers // the rest of the registers
+	bus             *memory.Bus // the memory bus
+	nextInstruction Instruction // the next instruction, used to simulate branch delay shot
 }
 
 // NewCPU Create and return a new CPU that's been reset
@@ -25,8 +26,9 @@ func NewCPU(bus *memory.Bus) *CPU {
 
 // Reset reset the cpu to its initial state
 func (cpu *CPU) Reset() {
-	cpu.pc = 0xbfc00000 // reset to beginning of the BIOS
+	cpu.pc = 0xbfc00000           // reset to beginning of the BIOS
 	cpu.regs = Registers{zero: 0} // TODO - probably reset to garbage but idc
+	cpu.nextInstruction = Instruction(0x0) // NOP
 	log.Info("Reset CPU state")
 }
 
@@ -42,9 +44,11 @@ func (cpu *CPU) SetReg(index, val uint32) {
 
 // RunNextInstruction run the next instruction
 func (cpu *CPU) RunNextInstruction() {
-	instruction := cpu.load32(cpu.pc)
+	instruction := cpu.nextInstruction
+	cpu.nextInstruction = Instruction(cpu.load32(cpu.pc))
+	
 	cpu.pc += 4 // increment pc by 4 bytes
-	cpu.decodeAndExecuteInstr(Instruction(instruction))
+	cpu.decodeAndExecuteInstr(instruction)
 }
 
 // decodeAndExecuteInstr decode and execute an instruction
@@ -53,6 +57,8 @@ func (cpu *CPU) decodeAndExecuteInstr(instruction Instruction) {
 	switch instruction.function() {
 	case 0x00: // SPECIAL
 		cpu.executeSubInstr(instruction)
+	case 0x02: // J
+		cpu.jump(instruction)
 	case 0x0f: // LUID
 		cpu.loadUpperImmediate(instruction)
 	case 0x0d: // ORI
@@ -69,7 +75,7 @@ func (cpu *CPU) decodeAndExecuteInstr(instruction Instruction) {
 // executeSubInstr decode and execute sub instruction (special)
 //
 // NOTE - This is a seperate function cuz I didn't wanna have a like nested switch
-func (cpu *CPU) executeSubInstr(instruction Instruction)  {
+func (cpu *CPU) executeSubInstr(instruction Instruction) {
 	switch instruction.subFunction() {
 	case 0x00: // shift left logical
 		cpu.shiftLeftLogical(instruction)
@@ -89,7 +95,7 @@ func (cpu *CPU) load32(addr uint32) uint32 {
 }
 
 // Store32 store given value val into address addr
-func (cpu *CPU) Store32(addr, val uint32)  {
+func (cpu *CPU) Store32(addr, val uint32) {
 	err := cpu.bus.Store32(addr, val)
 	if err != nil {
 		// log.Infof("%+v", cpu.regs)

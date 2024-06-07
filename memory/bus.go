@@ -32,6 +32,8 @@ func (b *Bus) Load32(addr uint32) (uint32, error) {
 }
 
 // Store32 Store 32 bit value val in address addr
+//
+// TODO - maybe clean this up, it's kinda gross
 func (b *Bus) Store32(addr, val uint32) error {
 	// check that memory address isn't unaligned
 	if addr % 4 != 0 {
@@ -56,6 +58,12 @@ func (b *Bus) Store32(addr, val uint32) error {
 
 		return nil
 	}
+
+	if _, contains := RAM_SIZE.Contains(addr); contains {
+		return nil // do nothing
+	}
+
+	
 	
 	return fmt.Errorf("Haven't implemented writing to address 0x%08x with val 0x%08x", addr, val)
 }

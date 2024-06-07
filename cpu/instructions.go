@@ -46,6 +46,11 @@ func (i Instruction) shiftImmediate() uint32 {
 	return (uint32(i) >> 6) & 0x1f
 }
 
+// jumpImmediate the jump target stored in bits [25:0]
+func (i Instruction) jumpImmediate() uint32 {
+	return uint32(i) & 0x3ffffff
+}
+
 /////////////////////////////////////
 // The CPU instructions themselves //
 /////////////////////////////////////
@@ -95,4 +100,11 @@ func (cpu *CPU) addImmediateUnsigned(instr Instruction)  {
 
 	val := cpu.GetReg(sourceReg) + immediate
 	cpu.SetReg(instr.targetReg(), val)
+}
+
+// jump jump
+func (cpu *CPU) jump(instr Instruction)  {
+	immediate := instr.jumpImmediate()
+
+	cpu.pc = (cpu.pc & 0xf0000000) | (immediate << 2)
 }
