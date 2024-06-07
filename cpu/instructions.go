@@ -51,6 +51,13 @@ func (i Instruction) jumpImmediate() uint32 {
 	return uint32(i) & 0x3ffffff
 }
 
+// copOpcode the coprocessor opcode from bits [25:21]
+//
+// TODO - check how we know this is right??
+func (i Instruction) copOpcode() uint32 {
+	return (uint32(i) >> 21) & 0x1f
+}
+
 /////////////////////////////////////
 // The CPU instructions themselves //
 /////////////////////////////////////
@@ -116,4 +123,13 @@ func (cpu *CPU) or(instr Instruction)  {
 	
 	val := cpu.GetReg(sourceReg) | cpu.GetReg(targetReg)
 	cpu.SetReg(instr.destReg(), val)
+}
+
+/////////////////////////////////
+// Coprocessor Instructions ✨ //
+/////////////////////////////////
+
+// moveToCopZero move register contents to coprocessor zero
+func (cpu *CPU) moveToCopZero(instr Instruction)  {
+	
 }

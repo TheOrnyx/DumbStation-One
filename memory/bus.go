@@ -63,7 +63,10 @@ func (b *Bus) Store32(addr, val uint32) error {
 		return nil // do nothing
 	}
 
-	
+	if _, contains := CACHE_CONTROL.Contains(addr); contains {
+		log.Warnf("Cache access not implemented yet - addr 0x%08x didn't receive value 0x%08x", addr, val)
+		return nil
+	}	
 	
 	return fmt.Errorf("Haven't implemented writing to address 0x%08x with val 0x%08x", addr, val)
 }

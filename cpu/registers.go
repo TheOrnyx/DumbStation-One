@@ -130,3 +130,103 @@ func (reg *Registers) SetReg(index RegIndex, val uint32)  {
 
 	reg.zero = 0
 }
+
+
+////////////////////////////////
+// Coprocessor Zero Registers //
+////////////////////////////////
+
+// The registers for coprocessor zero - most are unused for some reason
+//
+// TODO - see if the unused registers are needed
+type CopZeroRegisters struct {
+	bpc      uint32 // r3  - BPC - Breakpoint on execute (R/W) 
+	bda      uint32 // r5  - BDA - Breakpoint on data access (R/W)
+	jumpDest uint32 // r6  - JUMPDEST - Randomly memorized jump address (R)
+	dcic     uint32 // r7  - DCIC - Breakpoint control (R/W)
+	badVaddr uint32 // r8  - BadVaddr - Bad Virtual Address (R)
+	bdam     uint32 // r9  - BDAM - Data Access breakpoint mask (R/W)
+	bpcm     uint32 // r11 - BPCM - Execute breakpoint mask (R/W)
+	sr       uint32 // r12 - SR - System status register (R/W)
+	cause    uint32 // r13 - CAUSE - Describes the most recently recognised exception (R)
+	epc      uint32 // r14 - EPC - Return Address from Trap (R)
+	prid     uint32 // r15 - PRID - Processor ID (R)
+}
+
+// ReadReg read register at index and return the value along with a string name of the reg
+//
+// TODO - check if i should just like log here and remove returning the string
+func (c *CopZeroRegisters) ReadReg(index RegIndex) (uint32, string) {
+	switch index {
+	case 3: // bpc
+		return c.bpc, "BPC"
+	case 5: // BDA
+		return c.bda, "BDA"
+	case 6: // JUMPDEST
+		return c.jumpDest, "JUMPDEST"
+	case 7: // DCIC
+		return c.dcic, "DCIC"
+	case 8: // BadVaddr
+		return c.badVaddr, "BadVaddr"
+	case 9: // BDAM
+		return c.bdam, "BDAM"
+	case 11: // BPCM
+		return c.bpcm, "BPCM"
+	case 12: // SR
+		return c.sr, "SR"
+	case 13: // CAUSE
+		return c.cause, "CAUSE"
+	case 14: // EPC
+		return c.epc, "EPC"
+	case 15: // PRID
+		return c.prid, "PRID"
+		
+	default:
+		log.Warnf("Unkown coprocessor zero register %v", index)
+		return 0x00, "UNKNOWN"
+	}
+}
+
+// WriteReg write value val to register index index
+//
+// TODO - check that i've got the read only ones right
+func (c *CopZeroRegisters) WriteReg(index RegIndex, val uint32) string {
+	switch index {
+	case 3: // BPC
+		c.bpc = val
+		return "BPC"
+	case 5: // BDA
+		c.bda = val
+		return "BDA"
+	case 6: // JUMPDEST
+		c.jumpDest = val
+		return "JUMPDEST"
+	case 7: // DCIC
+		c.dcic = val
+		return "DCIC"
+	case 8: // BadVaddr
+		// c.badVaddr = val
+		return "BadVaddr (READ ONLY)"
+	case 9: // BDAM
+		c.bdam = val
+		return "BDAM"
+	case 11: // BPCM
+		c.bpcm = val
+		return "BPCM"
+	case 12: // SR
+		c.sr = val
+		return "SR"
+	case 13: // CAUSE
+		// c.cause = val
+		return "CAUSE (READ ONLY)"
+	case 14: // EPC
+		// c.epc = val
+		return "EPC (READ ONLY)"
+	case 15: // PRID
+		// c.prid = val
+		return "PRID (READ ONLY)"
+	default:
+		log.Warnf("Unkown write to coprocessor zero register %v with val 0x%08x", index, val)
+		return "UNKNOWN"
+	}
+}

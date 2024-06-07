@@ -9,10 +9,11 @@ import (
 // NOTES -
 // All registers are 32-bits wide (uint32)
 type CPU struct {
-	pc              uint32    // The program counter
-	regs            Registers // the rest of the registers
-	bus             *memory.Bus // the memory bus
-	nextInstruction Instruction // the next instruction, used to simulate branch delay shot
+	pc              uint32           // The program counter
+	regs            Registers        // the rest of the registers
+	copZeroRegs     CopZeroRegisters // Coprocessor zero's registers
+	bus             *memory.Bus      // the memory bus
+	nextInstruction Instruction      // the next instruction, used to simulate branch delay shot
 }
 
 // NewCPU Create and return a new CPU that's been reset
@@ -26,8 +27,9 @@ func NewCPU(bus *memory.Bus) *CPU {
 
 // Reset reset the cpu to its initial state
 func (cpu *CPU) Reset() {
-	cpu.pc = 0xbfc00000           // reset to beginning of the BIOS
-	cpu.regs = Registers{zero: 0} // TODO - probably reset to garbage but idc
+	cpu.pc = 0xbfc00000                    // reset to beginning of the BIOS
+	cpu.regs = Registers{zero: 0}          // TODO - probably reset to garbage but idc
+	cpu.copZeroRegs = CopZeroRegisters{}
 	cpu.nextInstruction = Instruction(0x0) // NOP
 	log.Info("Reset CPU state")
 }
@@ -46,7 +48,7 @@ func (cpu *CPU) SetReg(index RegIndex, val uint32) {
 func (cpu *CPU) RunNextInstruction() {
 	instruction := cpu.nextInstruction
 	cpu.nextInstruction = Instruction(cpu.load32(cpu.pc))
-	
+
 	cpu.pc += 4 // increment pc by 4 bytes
 	cpu.decodeAndExecuteInstr(instruction)
 }
@@ -59,6 +61,8 @@ func (cpu *CPU) decodeAndExecuteInstr(instruction Instruction) {
 		cpu.executeSubInstr(instruction)
 	case 0x02: // J
 		cpu.jump(instruction)
+	case 0x10: // COP0
+		cpu.copZeroOpcode(instruction)
 	case 0x0f: // LUID
 		cpu.loadUpperImmediate(instruction)
 	case 0x0d: // ORI
@@ -69,6 +73,16 @@ func (cpu *CPU) decodeAndExecuteInstr(instruction Instruction) {
 		cpu.addImmediateUnsigned(instruction)
 	default:
 		log.Panicf("Unknown instruction - 0x%08x", instruction)
+	}
+}
+
+// copZeroOpcode Coprocessor 0 opcode
+func (cpu *CPU) copZeroOpcode(instruction Instruction) {
+	switch instruction.copOpcode() {
+	case 0b00100: // MTC0
+		cpu.moveToCopZero(instruction)
+	default:
+		log.Panicf("Unknown coprocessor zero instruction - 0x%08x", instruction)
 	}
 }
 
