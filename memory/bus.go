@@ -53,7 +53,7 @@ func (b *Bus) Store32(addr, val uint32) error {
 			}
 
 		default:
-			log.Warnf("Unhandled write to MEM_CONTROL register")
+			log.Info("Unhandled write to MEM_CONTROL register")
 		}
 
 		return nil

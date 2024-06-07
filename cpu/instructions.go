@@ -15,18 +15,18 @@ func (i Instruction) subFunction() uint32 {
 }
 
 // targetReg get the target register of the current instruction
-func (i Instruction) targetReg() uint32 {
-	return (uint32(i) >> 16) & 0x1f
+func (i Instruction) targetReg() RegIndex {
+	return RegIndex((i >> 16) & 0x1f)
 }
 
 // sourceReg get the source reg of the current instruction (bits 21..25)
-func (i Instruction) sourceReg() uint32 {
-	return (uint32(i) >> 21) & 0x1f
+func (i Instruction) sourceReg() RegIndex {
+	return RegIndex((i >> 21) & 0x1f)
 }
 
 // destReg get the index of the destination register from bits [15:11]
-func (i Instruction) destReg() uint32 {
-	return (uint32(i) >> 11) & 0x1f
+func (i Instruction) destReg() RegIndex {
+	return RegIndex((i >> 11) & 0x1f)
 }
 
 // immediate16 return the immediate 16 bit value for the instruction
@@ -107,4 +107,13 @@ func (cpu *CPU) jump(instr Instruction)  {
 	immediate := instr.jumpImmediate()
 
 	cpu.pc = (cpu.pc & 0xf0000000) | (immediate << 2)
+}
+
+// or bitwise or between two registers
+func (cpu *CPU) or(instr Instruction)  {
+	sourceReg := instr.sourceReg()
+	targetReg := instr.targetReg()
+	
+	val := cpu.GetReg(sourceReg) | cpu.GetReg(targetReg)
+	cpu.SetReg(instr.destReg(), val)
 }

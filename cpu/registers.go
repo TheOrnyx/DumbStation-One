@@ -2,6 +2,8 @@ package cpu
 
 import "github.com/TheOrnyx/psx-go/log"
 
+type RegIndex uint32 // register index type
+
 // The general purpose registers (and hi and lo) (basically every register except PC)
 type Registers struct {
 	//             Name | Alias    | Common Usage
@@ -45,7 +47,7 @@ type Registers struct {
 // GetReg get register from given value
 // TODO - this is really gross, find a nicer way
 // FIXME - I can replcae this with reflection if needed!!
-func (reg *Registers) GetReg(index uint32) uint32 {
+func (reg *Registers) GetReg(index RegIndex) uint32 {
 	switch index {
 	case  0: return reg.zero
 	case  1: return reg.at
@@ -88,7 +90,7 @@ func (reg *Registers) GetReg(index uint32) uint32 {
 
 // SetReg set register at index to given value val
 // TODO - fix this one too, grossss
-func (reg *Registers) SetReg(index, val uint32)  {
+func (reg *Registers) SetReg(index RegIndex, val uint32)  {
 	switch index {
 	case  0: // Do nothing here :P
 	case  1: reg.at = val

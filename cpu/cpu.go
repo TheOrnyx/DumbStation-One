@@ -33,12 +33,12 @@ func (cpu *CPU) Reset() {
 }
 
 // GetReg get the register at index - just calls the reg's method
-func (cpu *CPU) GetReg(index uint32) uint32 {
+func (cpu *CPU) GetReg(index RegIndex) uint32 {
 	return cpu.regs.GetReg(index)
 }
 
 // SetReg sets the register at index to val - just calls the reg's method
-func (cpu *CPU) SetReg(index, val uint32) {
+func (cpu *CPU) SetReg(index RegIndex, val uint32) {
 	cpu.regs.SetReg(index, val)
 }
 
@@ -77,8 +77,10 @@ func (cpu *CPU) decodeAndExecuteInstr(instruction Instruction) {
 // NOTE - This is a seperate function cuz I didn't wanna have a like nested switch
 func (cpu *CPU) executeSubInstr(instruction Instruction) {
 	switch instruction.subFunction() {
-	case 0x00: // shift left logical
+	case 0x00: // SLL
 		cpu.shiftLeftLogical(instruction)
+	case 0x25: // OR
+		cpu.or(instruction)
 	default:
 		log.Panicf("Unknown sub instruction - 0x%08x", instruction)
 	}
