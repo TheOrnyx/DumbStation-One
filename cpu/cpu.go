@@ -1,9 +1,8 @@
 package cpu
 
 import (
-	"log"
-
 	"github.com/TheOrnyx/psx-go/memory"
+	"github.com/TheOrnyx/psx-go/log"
 )
 
 // The CPU struct
@@ -40,7 +39,15 @@ func (cpu *CPU) RunNextInstruction() {
 // decodeAndExecuteInstr decode and execute an instruction
 func (cpu *CPU) decodeAndExecuteInstr(instruction Instruction) {
 	switch instruction.function() {
-	case 0b001111: 
+	case 0b001111:
+		cpu.loadUpperImmediate(instruction)
+	case 0b001101:
+		cpu.orImmediate(instruction)
+	case 0b101011:
+		cpu.storeWord(instruction)
+	default:
+		
+		log.Panicf("Unknown instruction - %X", instruction)
 	}
 }
 
@@ -52,4 +59,12 @@ func (cpu *CPU) load32(addr uint32) uint32 {
 	}
 
 	return data
+}
+
+// Store32 store given value val into address addr
+func (cpu *CPU) Store32(addr, val uint32)  {
+	err := cpu.bus.Store32(addr, val)
+	if err != nil {
+		log.Panicf("Store32 Failed - %v", err)
+	}
 }

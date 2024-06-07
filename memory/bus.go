@@ -16,11 +16,44 @@ func NewBus(bios *Bios) *Bus {
 
 // Load32 load and return the value at addr on the bus
 func (b *Bus) Load32(addr uint32) (uint32, error) {
-	switch {
-	case addr >= BIOS_LOWER && addr < BIOS_UPPER: // the bios memory range
-		return b.bios.load32(addr - BIOS_LOWER), nil
-
-	default:
-		return 0xF, fmt.Errorf("Unknown load32 at address %v", addr)
+	// check that memory address isn't unaligned
+	if addr % 4 != 0 {
+		return 0xF, fmt.Errorf("Unaligned load32 address: 0x%x\n", addr)
 	}
+
+	if offset, contains := BIOS_RANGE.Contains(addr); contains {
+		return b.bios.load32(offset), nil
+	}
+	
+	return 0xF, fmt.Errorf("Unknown load32 at address %v", addr)
+	
+}
+
+// Store32 Store 32 bit value val in address addr
+func (b *Bus) Store32(addr, val uint32) error {
+	// check that memory address isn't unaligned
+	if addr % 4 != 0 {
+		return fmt.Errorf("Unaligned load32 address: 0x%x, val:0x%x\n", addr, val)
+	}
+
+	if offset, contains := MEM_CONTROL.Contains(addr); contains {
+		switch offset {
+		case 0: // expansion 1 base address
+			if val != 0x1f000000 {
+				return fmt.Errorf("Bad expansion 1 base address: 0x%x", val)
+			}
+
+		case 4: // expansion 2 base address
+			if val != 0x1f802000 {
+				return fmt.Errorf("Bad expansion 2 base address: 0x%x", val)
+			}
+
+		default:
+			return fmt.Errorf("Unhandled write to MEM_CONTROL register")
+		}
+
+		return nil
+	}
+	
+	return fmt.Errorf("Haven't implemented writing to address %x with val %x", addr, val)
 }

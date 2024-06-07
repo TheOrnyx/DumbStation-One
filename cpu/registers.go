@@ -1,6 +1,6 @@
 package cpu
 
-import "log"
+import "github.com/TheOrnyx/psx-go/log"
 
 // The general purpose registers (and hi and lo) (basically every register except PC)
 type Registers struct {
@@ -44,6 +44,7 @@ type Registers struct {
 
 // GetReg get register from given value
 // TODO - this is really gross, find a nicer way
+// FIXME - I can replcae this with reflection if needed!!
 func (reg *Registers) GetReg(index uint32) uint32 {
 	switch index {
 	case  0: return reg.zero
@@ -80,7 +81,7 @@ func (reg *Registers) GetReg(index uint32) uint32 {
 	case 31: return reg.ra
 
 	default:
-		log.Printf("Warning: Unkown register index %v\n", index)
+		log.Warnf("Unknown register index %v\n", index)
 		return reg.zero
 	}
 }
@@ -122,7 +123,7 @@ func (reg *Registers) SetReg(index, val uint32)  {
 	case 30: reg.fp = val
 	case 31: reg.ra = val
 	default:
-		log.Printf("Warning: Unknown register index %v\n", index)
+		log.Warnf("Unknown register index %v\n", index)
 	}
 
 	reg.zero = 0

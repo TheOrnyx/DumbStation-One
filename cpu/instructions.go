@@ -4,7 +4,7 @@ type Instruction uint32
 
 // function return the primary opcode field of the instruction (bits 26..31)
 func (i Instruction) function() uint32 {
-	return uint32(i) >> 24
+	return uint32(i) >> 26
 }
 
 // targetReg get the target register of the current instruction
@@ -26,19 +26,28 @@ func (i Instruction) immediate16() uint32 {
 // The CPU instructions themselves //
 /////////////////////////////////////
 
-// lui Load upper immediate - lui
-func (cpu *CPU) lui(instr Instruction)  {
+// loadUpperImmediate Load upper immediate - loadUpperImmediate
+func (cpu *CPU) loadUpperImmediate(instr Instruction)  {
 	immediate := instr.immediate16()
 	targetReg := instr.targetReg()
 
 	cpu.regs.SetReg(targetReg, immediate << 16)
 }
 
-// ori bitwise or immediate
-func (cpu *CPU) ori(instr Instruction)  {
+// orImmediate bitwise or immediate
+func (cpu *CPU) orImmediate(instr Instruction)  {
 	immediate := instr.immediate16()
 	sourceReg := instr.sourceReg()
 	val := cpu.regs.GetReg(sourceReg) | immediate
 	
 	cpu.regs.SetReg(instr.targetReg(), val)
+}
+
+// storeWord Store Word
+func (cpu *CPU) storeWord(instr Instruction)  {
+	targetReg := instr.targetReg()
+	sourceReg := instr.sourceReg()
+
+	addr := cpu.regs.GetReg(sourceReg) + instr.immediate16()
+	cpu.Store32(addr, cpu.regs.GetReg(targetReg))
 }

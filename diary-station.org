@@ -7,3 +7,8 @@ progress when i'm working on this emulator... Unless I forget, so like expect
 random jumps and stuff.
 
 But yeah, enjoy me slowly losing it
+
+* Day Two <2024-06-07 Fri>
+:LOGBOOK:
+CLOCK: [2024-06-07 Fri 12:26]
+:END:

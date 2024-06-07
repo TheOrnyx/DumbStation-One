@@ -43,3 +43,10 @@ When these are allocated and shit which one is better, especially in the long ru
 basically I want to know if it's generally fine to store say for example 2
 values into a struct for easier debugging and shit or if that causes more shit
 to be allocated and what not.
+
+* Things to maybe change
++ Maybe like instead of having the like instruction methods take in an
+  instruction object just like have the cpu struct have a like
+  "current_instruction" field or smth
++ Check whether or not it's better to return an error for like store32 or just
+  to panic, cuz panic lets me see the stacktrace
