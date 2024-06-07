@@ -16,3 +16,19 @@ func Uint32ToBytes(data uint32) (b0, b1, b2, b3 byte) {
 	return
 }
 
+// AddSigned16 add two signed 16 bit values together and return the result and
+// whether or not they caused an overflow
+//
+// FIXME - this is really likely wrong, like genuinely I don't trust this at all
+func AddSigned16(val, imm uint32) (result uint32, overflowed bool) {
+	signedImm := int32(imm)
+	signedVal := int32(val)
+	origBit := (signedVal >> 31)
+
+	res := signedVal + signedImm
+	if res >> 31 != origBit {
+		return 0x00, true
+	}
+	
+	return uint32(res), false
+}

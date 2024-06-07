@@ -4,6 +4,12 @@ import "github.com/TheOrnyx/psx-go/log"
 
 type RegIndex uint32 // register index type
 
+// used for the load slot delay
+type LoadRegPair struct {
+	target RegIndex
+	val uint32
+}
+
 // The general purpose registers (and hi and lo) (basically every register except PC)
 type Registers struct {
 	//             Name | Alias    | Common Usage
@@ -136,6 +142,10 @@ func (reg *Registers) SetReg(index RegIndex, val uint32)  {
 // Coprocessor Zero Registers //
 ////////////////////////////////
 
+const (
+	REG_SR = 12
+)
+
 // The registers for coprocessor zero - most are unused for some reason
 //
 // TODO - see if the unused registers are needed
@@ -153,10 +163,10 @@ type CopZeroRegisters struct {
 	prid     uint32 // r15 - PRID - Processor ID (R)
 }
 
-// ReadReg read register at index and return the value along with a string name of the reg
+// GetReg read register at index and return the value along with a string name of the reg
 //
 // TODO - check if i should just like log here and remove returning the string
-func (c *CopZeroRegisters) ReadReg(index RegIndex) (uint32, string) {
+func (c *CopZeroRegisters) GetReg(index RegIndex) (uint32, string) {
 	switch index {
 	case 3: // bpc
 		return c.bpc, "BPC"
@@ -182,15 +192,15 @@ func (c *CopZeroRegisters) ReadReg(index RegIndex) (uint32, string) {
 		return c.prid, "PRID"
 		
 	default:
-		log.Warnf("Unkown coprocessor zero register %v", index)
+		log.Panicf("Unkown coprocessor zero register %v", index)
 		return 0x00, "UNKNOWN"
 	}
 }
 
-// WriteReg write value val to register index index
+// SetReg write value val to register index index
 //
 // TODO - check that i've got the read only ones right
-func (c *CopZeroRegisters) WriteReg(index RegIndex, val uint32) string {
+func (c *CopZeroRegisters) SetReg(index RegIndex, val uint32) string {
 	switch index {
 	case 3: // BPC
 		c.bpc = val
@@ -226,7 +236,7 @@ func (c *CopZeroRegisters) WriteReg(index RegIndex, val uint32) string {
 		// c.prid = val
 		return "PRID (READ ONLY)"
 	default:
-		log.Warnf("Unkown write to coprocessor zero register %v with val 0x%08x", index, val)
+		log.Panicf("Unkown write to coprocessor zero register %v with val 0x%08x", index, val)
 		return "UNKNOWN"
 	}
 }

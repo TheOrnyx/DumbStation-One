@@ -1,5 +1,10 @@
 package cpu
 
+import (
+	"github.com/TheOrnyx/psx-go/log"
+	"github.com/TheOrnyx/psx-go/utils"
+)
+
 type Instruction uint32
 
 // function return the primary opcode field of the instruction (bits 26..31)
@@ -81,12 +86,33 @@ func (cpu *CPU) orImmediate(instr Instruction)  {
 
 // storeWord Store Word
 func (cpu *CPU) storeWord(instr Instruction)  {
+	if cpu.GetCopZeroReg(REG_SR) & 0x10000 != 0 {
+		log.Info("Ignoring storeWord while the cache is isolated")
+		return
+	}
+	
 	targetReg := instr.targetReg()
 	sourceReg := instr.sourceReg()
 
 	addr := cpu.GetReg(sourceReg) + instr.immediate16Se()
 	val := cpu.GetReg(targetReg)
 	cpu.Store32(addr, val)
+}
+
+// loadWord load word
+func (cpu *CPU) loadWord(instr Instruction)  {
+	if cpu.GetCopZeroReg(REG_SR) & 0x10000 != 0 {
+		log.Info("Ignoring loadWord while the cache is isolated")
+		return
+	}
+
+	immediate := instr.immediate16Se()
+	targetReg := instr.targetReg()
+	sourceReg := instr.sourceReg()
+	addr := cpu.GetReg(sourceReg) + immediate
+
+	val := cpu.load32(addr)
+	cpu.loadReg = LoadRegPair{targetReg, val} // TODO - once again check performance
 }
 
 // shiftLeftLogical Shift left logical
@@ -109,6 +135,19 @@ func (cpu *CPU) addImmediateUnsigned(instr Instruction)  {
 	cpu.SetReg(instr.targetReg(), val)
 }
 
+// addImmediate add immediate - generates exception when overflows
+func (cpu *CPU) addImmediate(instr Instruction)  {
+	immediate := instr.immediate16Se()
+	sourceReg := cpu.GetReg(instr.sourceReg())
+
+	result, overflowed := utils.AddSigned16(sourceReg, immediate)
+	if overflowed {
+		log.Panicf("ADDI overflowed with imm:0x%08x reg:0x%08x", immediate, sourceReg)
+	}
+
+	cpu.SetReg(instr.targetReg(), result)
+}
+
 // jump jump
 func (cpu *CPU) jump(instr Instruction)  {
 	immediate := instr.jumpImmediate()
@@ -125,11 +164,26 @@ func (cpu *CPU) or(instr Instruction)  {
 	cpu.SetReg(instr.destReg(), val)
 }
 
+// branchNotEqual branch if not equal
+func (cpu *CPU) branchNotEqual(instr Instruction)  {
+	offset := instr.immediate16Se()
+	sourceReg := instr.sourceReg()
+	targetReg := instr.targetReg()
+
+	if cpu.GetReg(sourceReg) != cpu.GetReg(targetReg) {
+		cpu.branch(offset)
+	}
+}
+
 /////////////////////////////////
 // Coprocessor Instructions ✨ //
 /////////////////////////////////
 
 // moveToCopZero move register contents to coprocessor zero
 func (cpu *CPU) moveToCopZero(instr Instruction)  {
-	
+	cpuReg := instr.targetReg()
+	copReg := instr.destReg()
+
+	val := cpu.GetReg(cpuReg)
+	cpu.SetCopZeroReg(copReg, val)
 }

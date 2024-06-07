@@ -11,6 +11,8 @@ import (
 type CPU struct {
 	pc              uint32           // The program counter
 	regs            Registers        // the rest of the registers
+	outRegs         Registers        // second set of registers used to emulate load delay slot - this sucks
+	loadReg         LoadRegPair      // the pair to use for loading
 	copZeroRegs     CopZeroRegisters // Coprocessor zero's registers
 	bus             *memory.Bus      // the memory bus
 	nextInstruction Instruction      // the next instruction, used to simulate branch delay shot
@@ -27,8 +29,10 @@ func NewCPU(bus *memory.Bus) *CPU {
 
 // Reset reset the cpu to its initial state
 func (cpu *CPU) Reset() {
-	cpu.pc = 0xbfc00000                    // reset to beginning of the BIOS
-	cpu.regs = Registers{zero: 0}          // TODO - probably reset to garbage but idc
+	cpu.pc = 0xbfc00000           // reset to beginning of the BIOS
+	cpu.regs = Registers{zero: 0} // TODO - probably reset to garbage but idc
+	cpu.outRegs = cpu.regs
+	cpu.loadReg = LoadRegPair{0, 0}
 	cpu.copZeroRegs = CopZeroRegisters{}
 	cpu.nextInstruction = Instruction(0x0) // NOP
 	log.Info("Reset CPU state")
@@ -41,16 +45,35 @@ func (cpu *CPU) GetReg(index RegIndex) uint32 {
 
 // SetReg sets the register at index to val - just calls the reg's method
 func (cpu *CPU) SetReg(index RegIndex, val uint32) {
-	cpu.regs.SetReg(index, val)
+	cpu.outRegs.SetReg(index, val)
+}
+
+// GetCopZeroReg get cop zero reg and handle logging if need be
+func (cpu *CPU) GetCopZeroReg(index RegIndex) uint32 {
+	val, _ := cpu.copZeroRegs.GetReg(index)
+	return val
+}
+
+// SetCopZeroReg set cop zero reg and handle logging if need be
+func (cpu *CPU) SetCopZeroReg(index RegIndex, val uint32) {
+	_ = cpu.copZeroRegs.SetReg(index, val)
 }
 
 // RunNextInstruction run the next instruction
 func (cpu *CPU) RunNextInstruction() {
 	instruction := cpu.nextInstruction
 	cpu.nextInstruction = Instruction(cpu.load32(cpu.pc))
-
 	cpu.pc += 4 // increment pc by 4 bytes
+
+	// set for the delay slot
+	cpu.SetReg(cpu.loadReg.target, cpu.loadReg.val)
+	cpu.loadReg = LoadRegPair{0, 0} // TODO - check this is not inefficient compared to setting vals
+	
 	cpu.decodeAndExecuteInstr(instruction)
+
+	// set the regs to the outregs
+	// FIXME - optimize later
+	cpu.regs = cpu.outRegs
 }
 
 // decodeAndExecuteInstr decode and execute an instruction
@@ -61,18 +84,24 @@ func (cpu *CPU) decodeAndExecuteInstr(instruction Instruction) {
 		cpu.executeSubInstr(instruction)
 	case 0x02: // J
 		cpu.jump(instruction)
+	case 0x05: // BNE
+		cpu.branchNotEqual(instruction)
+	case 0x08: // ADDI
+		cpu.addImmediate(instruction)
 	case 0x10: // COP0
 		cpu.copZeroOpcode(instruction)
 	case 0x0f: // LUID
 		cpu.loadUpperImmediate(instruction)
 	case 0x0d: // ORI
 		cpu.orImmediate(instruction)
+	case 0x23: // LW
+		cpu.loadWord(instruction)
 	case 0x2b: // SW
 		cpu.storeWord(instruction)
 	case 0x09: // ADDIU
 		cpu.addImmediateUnsigned(instruction)
 	default:
-		log.Panicf("Unknown instruction - 0x%08x", instruction)
+		log.Panicf("Unknown instruction - 0x%08x, 0x%02x", instruction, instruction.function())
 	}
 }
 
@@ -117,4 +146,13 @@ func (cpu *CPU) Store32(addr, val uint32) {
 		// log.Infof("%+v", cpu.regs)
 		log.Panicf("Store32 Failed - %v", err)
 	}
+}
+
+// branch branch to the immediate value offset - basic branch used by
+// other instructions
+func (cpu *CPU) branch(offset uint32) {
+	offset = offset << 2
+	cpu.pc += offset
+
+	cpu.pc -= 4 // have to compensate for the += 4 in the run next instr
 }
