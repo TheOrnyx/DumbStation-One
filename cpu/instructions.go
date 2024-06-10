@@ -120,10 +120,15 @@ func (cpu *CPU) storeWord(instr Instruction) {
 
 	targetReg := instr.targetReg()
 	sourceReg := instr.sourceReg()
-
-	addr := cpu.GetReg(sourceReg) + instr.immediate16Se()
 	val := cpu.GetReg(targetReg)
-	cpu.Store32(addr, val)
+	addr := cpu.GetReg(sourceReg) + instr.immediate16Se()
+
+	if addr % 4 == 0 {
+		cpu.Store32(addr, val)
+	} else {
+		cpu.Exception(StoreAddressError)
+	}
+
 }
 
 // storeHalfWord store half word into memory
@@ -138,7 +143,11 @@ func (cpu *CPU) storeHalfWord(instr Instruction) {
 	sourceReg := cpu.GetReg(instr.sourceReg())
 	addr := sourceReg + immediate
 
-	cpu.Store16(addr, uint16(targetReg))
+	if addr % 2 == 0 {
+		cpu.Store16(addr, uint16(targetReg))
+	} else {
+		cpu.Exception(StoreAddressError)
+	}
 }
 
 // storeByte store byte
@@ -168,8 +177,12 @@ func (cpu *CPU) loadWord(instr Instruction) {
 	sourceReg := instr.sourceReg()
 	addr := cpu.GetReg(sourceReg) + immediate
 
-	val := cpu.load32(addr)
-	cpu.loadReg = LoadRegPair{targetReg, val} // TODO - once again check performance
+	if addr % 4 == 0 {
+		val := cpu.load32(addr)
+		cpu.loadReg = LoadRegPair{targetReg, val} // TODO - once again check performance
+	} else {
+		cpu.Exception(LoadAddressError)
+	}
 }
 
 // loadByte load signed byte
@@ -243,7 +256,7 @@ func (cpu *CPU) addImmediate(instr Instruction) {
 
 	result, overflowed := utils.AddSigned16(sourceReg, immediate)
 	if overflowed {
-		log.Panicf("ADDI overflowed with imm:0x%08x reg:0x%08x", immediate, sourceReg)
+		cpu.Exception(Overflow)
 	}
 
 	cpu.SetReg(instr.targetReg(), result)
@@ -256,7 +269,7 @@ func (cpu *CPU) add(instr Instruction) {
 
 	val, overflowed := utils.AddSigned16(sourceReg, targetReg)
 	if overflowed {
-		log.Panicf("ADD overflowed with source:0x%08x target:0x%08x", sourceReg, targetReg)
+		cpu.Exception(Overflow)
 	}
 
 	cpu.SetReg(instr.destReg(), val)
@@ -296,6 +309,7 @@ func (cpu *CPU) jumpAndLinkReg(instr Instruction) {
 
 	cpu.nextPC = jumpLoc
 	cpu.branching = true
+	cpu.branchingSetup()
 }
 
 // jumpRegister jump to val in register
@@ -303,6 +317,7 @@ func (cpu *CPU) jumpRegister(instr Instruction) {
 	sourceReg := cpu.GetReg(instr.sourceReg())
 	cpu.nextPC = sourceReg
 	cpu.branching = true
+	cpu.branchingSetup()
 }
 
 // branchNotEqual branch if not equal

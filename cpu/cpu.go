@@ -9,19 +9,19 @@ import (
 // NOTES -
 // All registers are 32-bits wide (uint32)
 type CPU struct {
-	pc              uint32           // The program counter
-	nextPC          uint32           // the next value for the PC - used for simulating branch delay slot
-	regs            Registers        // the rest of the registers
-	outRegs         Registers        // second set of registers used to emulate load delay slot - this sucks
-	loadReg         LoadRegPair      // the pair to use for loading
-	copZeroRegs     CopZeroRegisters // Coprocessor zero's registers
-	bus             *memory.Bus      // the memory bus
-	nextInstruction Instruction      // the next instruction, used to simulate branch delay shot
-	hi              uint32           // HI register for division remainder and multiplication high result
-	lo              uint32           // LO register for division quotient and multiplication low result
-	currentPC uint32 // address of instruction currently being executed. used for setting EPC in exceptions
-	branching bool // set by current instruction if branch occured and next instruction will be in delay slot
-	instrInDelaySlot bool // set if the current instruction executes in the delay slot
+	pc               uint32           // The program counter
+	nextPC           uint32           // the next value for the PC - used for simulating branch delay slot
+	regs             Registers        // the rest of the registers
+	outRegs          Registers        // second set of registers used to emulate load delay slot - this sucks
+	loadReg          LoadRegPair      // the pair to use for loading
+	copZeroRegs      CopZeroRegisters // Coprocessor zero's registers
+	bus              *memory.Bus      // the memory bus
+	nextInstruction  Instruction      // the next instruction, used to simulate branch delay shot
+	hi               uint32           // HI register for division remainder and multiplication high result
+	lo               uint32           // LO register for division quotient and multiplication low result
+	currentPC        uint32           // address of instruction currently being executed. used for setting EPC in exceptions
+	branching        bool             // set by current instruction if branch occured and next instruction will be in delay slot
+	instrInDelaySlot bool             // set if the current instruction executes in the delay slot
 }
 
 // NewCPU Create and return a new CPU that's been reset
@@ -257,6 +257,16 @@ func (cpu *CPU) Store8(addr uint32, val uint8) {
 	}
 }
 
+// branchingSetup set some common settigns for branching
+func (cpu *CPU) branchingSetup()  {
+	cpu.branching = true
+
+	if cpu.nextPC % 4 != 0 { // TODO - check whether this should be nextPC
+		// PC is not correctly aligned
+		cpu.Exception(LoadAddressError)
+	}
+}
+
 // branch branch to the immediate value offset - basic branch used by
 // other instructions
 func (cpu *CPU) branch(offset uint32) {
@@ -265,6 +275,7 @@ func (cpu *CPU) branch(offset uint32) {
 
 	cpu.nextPC -= 4 // have to compensate for the += 4 in the run next instr
 	cpu.branching = true
+	cpu.branchingSetup()
 }
 
 // jump jump
@@ -273,21 +284,25 @@ func (cpu *CPU) jump(instr Instruction) {
 
 	cpu.nextPC = (cpu.nextPC & 0xf0000000) | (immediate << 2)
 	cpu.branching = true
+	cpu.branchingSetup()
 }
 
 // exception enums
 const (
-	SysCall = 0x8
+	SysCall  = 0x8
+	Overflow = 0xc
+	LoadAddressError = 0x4
+	StoreAddressError = 0x5
 )
 
 // Exception Trigger an exception
 //
 // TODO - recheck this later
-func (cpu *CPU) Exception(cause int)  {
+func (cpu *CPU) Exception(cause int) {
 	// exception handler address depends on 'BEV' bit:
 	sr := cpu.GetCopZeroReg(12)
 	var handler uint32 = 0x80000080
-	if sr & (1 << 22) != 0 {
+	if sr&(1<<22) != 0 {
 		handler = 0xbfc00180
 	}
 
@@ -313,7 +328,7 @@ func (cpu *CPU) Exception(cause int)  {
 		cpu.copZeroRegs.epc -= 4
 		cpu.copZeroRegs.cause |= 1 << 31
 	}
-	
+
 	cpu.pc = handler
 	cpu.nextPC = cpu.pc + 4
 }
