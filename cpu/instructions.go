@@ -629,3 +629,4 @@ func (cpu *CPU) returnFromException(instr Instruction)  {
 	cpu.copZeroRegs.sr &= ^uint32(0x3f)
 	cpu.copZeroRegs.sr |= mode >> 2
 }
+

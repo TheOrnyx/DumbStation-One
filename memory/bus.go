@@ -43,6 +43,11 @@ func (b *Bus) Load32(addr uint32) (uint32, error) {
 		log.Infof("(not implemented) DMA read at: 0x%08x", absAddr)
 		return 0, nil
 	}
+
+	if _, contains := GPU_RANGE.Contains(absAddr); contains {
+		log.Infof("(Not implemented yet) GPU read at absAddr:0x%08x", absAddr)
+		return 0, nil
+	}
 	
 	return 0xF, fmt.Errorf("Unknown load32 at address 0x%08x", addr)	
 }
@@ -58,6 +63,11 @@ func (b *Bus) Load16(addr uint32) (uint16, error) {
 
 	if offset, contains := RAM_RANGE.Contains(absAddr); contains {
 		return b.ram.load16(offset), nil
+	}
+
+	if _, contains := IRQ_CONTROL.Contains(absAddr); contains {
+		log.Infof("(Not implemented yet) IRQ control read at 0x%08x", absAddr)
+		return 0, nil
 	}
 
 	return 0, fmt.Errorf("Unkown Load16 at address 0x%08x", absAddr)
@@ -138,6 +148,11 @@ func (b *Bus) Store32(addr, val uint32) error {
 		log.Infof("(Not implemented yet) DMA write: addr:0x%08x, val:0x%08x", absAddr, val)
 		return nil
 	}
+
+	if _, contains := GPU_RANGE.Contains(absAddr); contains {
+		log.Infof("(Not implemented yet) GPU write 0x%08x to 0x%08x", val, absAddr)
+		return nil
+	}
 	
 	return fmt.Errorf("Haven't implemented store32 to address 0x%08x with val 0x%08x", addr, val)
 }
@@ -162,6 +177,11 @@ func (b *Bus) Store16(addr uint32, val uint16) error {
 
 	if offset, contains := RAM_RANGE.Contains(absAddr); contains {
 		b.ram.store16(offset, val)
+		return nil
+	}
+
+	if _, contains := IRQ_CONTROL.Contains(absAddr); contains {
+		log.Infof("(Not implemented yet) IRQ control 16-bit write 0x%04x to 0x%08x", val, absAddr)
 		return nil
 	}
 
