@@ -97,7 +97,7 @@ func (cpu *CPU) RunNextInstruction() {
 	cpu.SetLoadReg(0, 0)
 
 	cpu.decodeAndExecuteInstr(instruction)
-
+	
 	// set the regs to the outregs
 	// FIXME - optimize later
 	cpu.regs = cpu.outRegs
@@ -106,58 +106,11 @@ func (cpu *CPU) RunNextInstruction() {
 // decodeAndExecuteInstr decode and execute an instruction
 // TODO - switch from binary to hex cuz nicer
 func (cpu *CPU) decodeAndExecuteInstr(instruction Instruction) {
-	switch instruction.function() {
-	case 0x00: // SPECIAL
-		cpu.executeSubInstr(instruction)
-	case 0x01: // BcondZ
-		cpu.branchVarious(instruction)
-	case 0x02: // J
-		cpu.jump(instruction)
-	case 0x03: // JAL
-		cpu.jumpAndLink(instruction)
-	case 0x04: // BEQ
-		cpu.branchIfEqual(instruction)
-	case 0x05: // BNE
-		cpu.branchNotEqual(instruction)
-	case 0x06: // BLEZ
-		cpu.branchLessOrEqualZero(instruction)
-	case 0x07: // BGTZ
-		cpu.branchGreaterThanZero(instruction)
-	case 0x08: // ADDI
-		cpu.addImmediate(instruction)
-	case 0x0a: // SLTI
-		cpu.setIfLessThanImm(instruction)
-	case 0x0b: // SLTIU
-		cpu.setIfLessThanImmUnsigned(instruction)
-	case 0x0c: // ANDI
-		cpu.andImmediate(instruction)
-	case 0x10: // COP0
-		cpu.copZeroOpcode(instruction)
-	case 0x0f: // LUID
-		cpu.loadUpperImmediate(instruction)
-	case 0x0d: // ORI
-		cpu.orImmediate(instruction)
-	case 0x20: // LB
-		cpu.loadByte(instruction)
-	case 0x21: // LH
-		cpu.loadHalfWord(instruction)
-	case 0x23: // LW
-		cpu.loadWord(instruction)
-	case 0x24: // LBU
-		cpu.loadByteUnsigned(instruction)
-	case 0x25: // LHU
-		cpu.loadHalfWordUnsigned(instruction)
-	case 0x28: // SB
-		cpu.storeByte(instruction)
-	case 0x29: // SH
-		cpu.storeHalfWord(instruction)
-	case 0x2b: // SW
-		cpu.storeWord(instruction)
-	case 0x09: // ADDIU
-		cpu.addImmediateUnsigned(instruction)
-	default:
-		log.Panicf("Unknown instruction - 0x%08x, 0x%02x", instruction, instruction.function())
+	if instruction.function() > 0x3f {
+		UnknownOpcode.runFunc(cpu, instruction)
 	}
+	
+	Opcodes[instruction.function()].runFunc(cpu, instruction)
 }
 
 // copZeroOpcode Coprocessor 0 opcode
@@ -175,61 +128,12 @@ func (cpu *CPU) copZeroOpcode(instruction Instruction) {
 }
 
 // executeSubInstr decode and execute sub instruction (special)
-//
-// NOTE - This is a seperate function cuz I didn't wanna have a like nested switch
 func (cpu *CPU) executeSubInstr(instruction Instruction) {
-	switch instruction.subFunction() {
-	case 0x00: // SLL
-		cpu.shiftLeftLogical(instruction)
-	case 0x02: // SRL
-		cpu.shiftRightLogical(instruction)
-	case 0x03: // SRA
-		cpu.shiftRightArithmetic(instruction)
-	case 0x04: // SLLV
-		cpu.shiftLeftLogicalVar(instruction)
-	case 0x06: // SRLV
-		cpu.shiftRightLogicalVar(instruction)
-	case 0x07: // SRAV
-		cpu.shiftRightArithmeticVar(instruction)
-	case 0x08: // JR
-		cpu.jumpRegister(instruction)
-	case 0x09: // JALR
-		cpu.jumpAndLinkReg(instruction)
-	case 0x0c: // SYSCALL
-		cpu.syscall(instruction)
-	case 0x10: // MFHI
-		cpu.moveFromHI(instruction)
-	case 0x11: // MTHI
-		cpu.moveToHI(instruction)
-	case 0x12: // MFLO
-		cpu.moveFromLO(instruction)
-	case 0x13: // MTLO
-		cpu.moveToLO(instruction)
-	case 0x19: // MULTU
-		cpu.multiplyUnsigned(instruction)
-	case 0x1a: // DIV
-		cpu.div(instruction)
-	case 0x1b: // DIVU
-		cpu.divUnsigned(instruction)
-	case 0x20: // ADD
-		cpu.add(instruction)
-	case 0x21: // ADDU
-		cpu.addUnsigned(instruction)
-	case 0x23: // SUBU
-		cpu.subUnsigned(instruction)
-	case 0x24: // AND
-		cpu.and(instruction)
-	case 0x25: // OR
-		cpu.or(instruction)
-	case 0x27: // NOR
-		cpu.nor(instruction)
-	case 0x2a: // SLT
-		cpu.setIfLessThan(instruction)
-	case 0x2b: // SLTU
-		cpu.setIfLessThanUnsigned(instruction)
-	default:
-		log.Panicf("Unknown sub instruction - 0x%08x, 0x%02x", instruction, instruction.subFunction())
+	if instruction.subFunction() > 0x3f {
+		UnknownSubOpcode.runFunc(cpu, instruction)
 	}
+
+	SubOpcodes[instruction.subFunction()].runFunc(cpu, instruction)
 }
 
 // load32 Load and return the value at given address addr
