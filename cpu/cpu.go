@@ -84,18 +84,30 @@ func (cpu *CPU) decodeAndExecuteInstr(instruction Instruction) {
 		cpu.executeSubInstr(instruction)
 	case 0x02: // J
 		cpu.jump(instruction)
+	case 0x03: // JAL
+		cpu.jumpAndLink(instruction)
+	case 0x04: // BEQ
+		cpu.branchIfEqual(instruction)
 	case 0x05: // BNE
 		cpu.branchNotEqual(instruction)
 	case 0x08: // ADDI
 		cpu.addImmediate(instruction)
+	case 0x0c: // ANDI
+		cpu.andImmediate(instruction)
 	case 0x10: // COP0
 		cpu.copZeroOpcode(instruction)
 	case 0x0f: // LUID
 		cpu.loadUpperImmediate(instruction)
 	case 0x0d: // ORI
 		cpu.orImmediate(instruction)
+	case 0x20: // LB
+		cpu.loadByte(instruction)
 	case 0x23: // LW
 		cpu.loadWord(instruction)
+	case 0x28: // SB
+		cpu.storeByte(instruction)
+	case 0x29: // SH
+		cpu.storeHalfWord(instruction)
 	case 0x2b: // SW
 		cpu.storeWord(instruction)
 	case 0x09: // ADDIU
@@ -108,10 +120,12 @@ func (cpu *CPU) decodeAndExecuteInstr(instruction Instruction) {
 // copZeroOpcode Coprocessor 0 opcode
 func (cpu *CPU) copZeroOpcode(instruction Instruction) {
 	switch instruction.copOpcode() {
+	case 0x00: // MFC0
+		cpu.moveFromCopZero(instruction)
 	case 0b00100: // MTC0
 		cpu.moveToCopZero(instruction)
 	default:
-		log.Panicf("Unknown coprocessor zero instruction - 0x%08x", instruction)
+		log.Panicf("Unknown cop zero instruction - 0x%08x, 0x%02x", instruction, instruction.copOpcode())
 	}
 }
 
@@ -122,8 +136,14 @@ func (cpu *CPU) executeSubInstr(instruction Instruction) {
 	switch instruction.subFunction() {
 	case 0x00: // SLL
 		cpu.shiftLeftLogical(instruction)
+	case 0x08: // JR
+		cpu.jumpRegister(instruction)
+	case 0x20: // ADD
+		cpu.add(instruction)
 	case 0x21: // ADDU
 		cpu.addUnsigned(instruction)
+	case 0x24: // AND
+		cpu.and(instruction)
 	case 0x25: // OR
 		cpu.or(instruction)
 	case 0x2b: // SLTU
@@ -137,10 +157,20 @@ func (cpu *CPU) executeSubInstr(instruction Instruction) {
 func (cpu *CPU) load32(addr uint32) uint32 {
 	data, err := cpu.bus.Load32(addr)
 	if err != nil {
-		log.Fatalf("%v", err)
+		log.Fatalf("Load32 failed - %v", err)
 	}
 
 	return data
+}
+
+// Load8 load 8 bit val from memory
+func (cpu *CPU) Load8(addr uint32) uint8 {
+	val, err := cpu.bus.Load8(addr)
+	if err != nil {
+		log.Fatalf("Load8 failed - %v", err)
+	}
+
+	return val
 }
 
 // Store32 store given value val into address addr
@@ -149,6 +179,22 @@ func (cpu *CPU) Store32(addr, val uint32) {
 	if err != nil {
 		// log.Infof("%+v", cpu.regs)
 		log.Panicf("Store32 Failed - %v", err)
+	}
+}
+
+// Store16 store given 16bit value into memory
+func (cpu *CPU) Store16(addr uint32, val uint16)  {
+	err := cpu.bus.Store16(addr, val)
+	if err != nil {
+		log.Panicf("Store16 Failed - %v", err)
+	}
+}
+
+// Store8 store 8-bit byte into memory
+func (cpu *CPU) Store8(addr uint32, val uint8)  {
+	err := cpu.bus.Store8(addr, val)
+	if err != nil {
+		log.Panicf("Store8 Failed - %v", err)
 	}
 }
 

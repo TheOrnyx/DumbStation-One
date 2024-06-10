@@ -29,6 +29,11 @@ func (r *Ram) load32(offset uint32) uint32 {
 	return utils.BytesToUint32(b0, b1, b2, b3)
 }
 
+// load8 fetch byte at offset
+func (r *Ram) load8(offset uint32) uint8 {
+	return r.data[offset]
+}
+
 // store32 store value val into data at offset location
 func (r *Ram) store32(offset, val uint32)  {
 	b0, b1, b2, b3 := utils.Uint32ToBytes(val)
@@ -37,4 +42,9 @@ func (r *Ram) store32(offset, val uint32)  {
 	r.data[offset + 1] = b1
 	r.data[offset + 2] = b2
 	r.data[offset + 3] = b3
+}
+
+// store8 store byte val into offset in data
+func (r *Ram) store8(offset uint32, val uint8)  {
+	r.data[offset] = val
 }

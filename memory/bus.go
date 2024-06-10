@@ -34,8 +34,29 @@ func (b *Bus) Load32(addr uint32) (uint32, error) {
 		return b.ram.load32(offset), nil
 	}
 	
-	return 0xF, fmt.Errorf("Unknown load32 at address 0x%08x", addr)
+	return 0xF, fmt.Errorf("Unknown load32 at address 0x%08x", addr)	
+}
+
+// Load8 load byte at given address addr
+func (b *Bus) Load8(addr uint32) (uint8, error) {
+	absAddr := MaskRegion(addr)
+
+	if offset, contains := RAM_RANGE.Contains(absAddr); contains {
+		return b.ram.load8(offset), nil
+	}
+
+	if offset, contains := BIOS_RANGE.Contains(absAddr); contains {
+		return b.bios.load8(offset), nil
+	}
+
+	if _, contains := EXPANSION_1.Contains(absAddr); contains {
+		// not implemented
+		// TODO - i am so confused here, figure it out lmao
+		log.Infof("Expansion 1 not implemented yet at: absAddr:0x%08x addr:0x%08x", absAddr, addr)
+		return 0xff, nil
+	}
 	
+	return 0xF, fmt.Errorf("Unkown Load8 at address 0x%08x", absAddr)
 }
 
 // Store32 Store 32 bit value val in address addr
@@ -82,5 +103,39 @@ func (b *Bus) Store32(addr, val uint32) error {
 		return nil
 	}	
 	
-	return fmt.Errorf("Haven't implemented writing to address 0x%08x with val 0x%08x", addr, val)
+	return fmt.Errorf("Haven't implemented store32 to address 0x%08x with val 0x%08x", addr, val)
+}
+
+// Store16 store 16 bit value into memory
+func (b *Bus) Store16(addr uint32, val uint16) error {
+	if addr % 2 != 0 {
+		return fmt.Errorf("Unaligned Store16 address: 0x%x, val:0x%x\n", addr, val)
+	}
+
+	absAddr := MaskRegion(addr)
+
+	if offset, contains := SPU_RANGE.Contains(absAddr); contains {
+		log.Infof("Unhandled write to SPU register: offset:0x%08x, absAddr:0x%04x", offset, absAddr)
+		return nil
+	}
+
+	return fmt.Errorf("Haven't implemented store16 into address 0x%08x with val 0x%04x", addr, val)
+}
+
+
+// Store8 store 8 bit value into memory
+func (b *Bus) Store8(addr uint32, val uint8) error {
+	absAddr := MaskRegion(addr)
+
+	if offset, contains := RAM_RANGE.Contains(absAddr); contains {
+		b.ram.store8(offset, val)
+		return nil
+	}
+
+	if offset, contains := EXPANSION_2.Contains(absAddr); contains {
+		log.Infof("Unhandled write to expansion 2 register: offset:0x%08x, absAddr:0x%02x", offset, absAddr)
+		return nil
+	}
+	
+	return fmt.Errorf("Haven't implemented store8 into address 0x%08x with val 0x%02x", addr, val)
 }

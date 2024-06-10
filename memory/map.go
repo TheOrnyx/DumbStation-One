@@ -13,7 +13,9 @@ var (
 	SYS_CONTROL   = Range{start: 0x1f801000, length: 36}
 	RAM_SIZE      = Range{start: 0x1f801060, length: 4} // guide says to ignore
 	CACHE_CONTROL = Range{start: 0xfffe0130, length: 4} // the cache control
-	
+	SPU_RANGE     = Range{start: 0x1f801c00, length: 640}
+	EXPANSION_1   = Range{start: 0x1f000000, length: 8192*1024} // TODO - check i have no idea
+	EXPANSION_2   = Range{start: 0x1f802000, length: 66}
 )
 
 // Contains whether or not addr is inside range

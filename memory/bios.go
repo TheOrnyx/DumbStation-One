@@ -42,3 +42,8 @@ func (b *Bios) load32(offset uint32) uint32 {
 
 	return utils.BytesToUint32(b0,b1,b2,b3)
 }
+
+// load8 get and return byte at location offset
+func (b *Bios) load8(offset uint32) uint8 {
+	return b.data[offset]
+}
