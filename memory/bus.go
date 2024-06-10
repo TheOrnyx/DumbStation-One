@@ -38,8 +38,29 @@ func (b *Bus) Load32(addr uint32) (uint32, error) {
 		log.Infof("(not implemented) IRQ control read at: absAddr:0x%08x", absAddr)
 		return 0, nil
 	}
+
+	if _, contains := DMA_RANGE.Contains(absAddr); contains {
+		log.Infof("(not implemented) DMA read at: 0x%08x", absAddr)
+		return 0, nil
+	}
 	
 	return 0xF, fmt.Errorf("Unknown load32 at address 0x%08x", addr)	
+}
+
+// Load16 load 16-bit halfword at addr
+func (b *Bus) Load16(addr uint32) (uint16, error) {
+	absAddr := MaskRegion(addr)
+
+	if _, contains := SPU_RANGE.Contains(absAddr); contains {
+		log.Infof("(Not implemented yet) SPU register read at 0x%08x", absAddr)
+		return 0, nil
+	}
+
+	if offset, contains := RAM_RANGE.Contains(absAddr); contains {
+		return b.ram.load16(offset), nil
+	}
+
+	return 0, fmt.Errorf("Unkown Load16 at address 0x%08x", absAddr)
 }
 
 // Load8 load byte at given address addr
@@ -73,9 +94,9 @@ func (b *Bus) Store32(addr, val uint32) error {
 		return fmt.Errorf("Unaligned load32 address: 0x%x, val:0x%x\n", addr, val)
 	}
 
-	maskedAddr := MaskRegion(addr)
+	absAddr := MaskRegion(addr)
 
-	if offset, contains := SYS_CONTROL.Contains(maskedAddr); contains {
+	if offset, contains := SYS_CONTROL.Contains(absAddr); contains {
 		switch offset {
 		case 0: // expansion 1 base address
 			if val != 0x1f000000 {
@@ -94,22 +115,27 @@ func (b *Bus) Store32(addr, val uint32) error {
 		return nil
 	}
 
-	if offset, contains := RAM_RANGE.Contains(maskedAddr); contains {
+	if offset, contains := RAM_RANGE.Contains(absAddr); contains {
 		b.ram.store32(offset, val)
 		return nil
 	}
 
-	if _, contains := RAM_SIZE.Contains(maskedAddr); contains {
+	if _, contains := RAM_SIZE.Contains(absAddr); contains {
 		return nil // do nothing
 	}
 
-	if _, contains := CACHE_CONTROL.Contains(maskedAddr); contains {
+	if _, contains := CACHE_CONTROL.Contains(absAddr); contains {
 		log.Warnf("Cache access not implemented yet - addr 0x%08x didn't receive value 0x%08x", addr, val)
 		return nil
 	}
 
-	if offset, contains := IRQ_CONTROL.Contains(maskedAddr); contains {
+	if offset, contains := IRQ_CONTROL.Contains(absAddr); contains {
 		log.Infof("(Not implemented yet) IRQ control 0x%08x <- 0x%08x", offset, val)
+		return nil
+	}
+
+	if _, contains := DMA_RANGE.Contains(absAddr); contains {
+		log.Infof("(Not implemented yet) DMA write: addr:0x%08x, val:0x%08x", absAddr, val)
 		return nil
 	}
 	
@@ -124,13 +150,18 @@ func (b *Bus) Store16(addr uint32, val uint16) error {
 
 	absAddr := MaskRegion(addr)
 
-	if offset, contains := SPU_RANGE.Contains(absAddr); contains {
-		log.Infof("Unhandled write to SPU register: offset:0x%08x, absAddr:0x%04x", offset, absAddr)
+	if _, contains := SPU_RANGE.Contains(absAddr); contains {
+		log.Infof("Unhandled write to SPU register at absAddr:0x%04x", absAddr)
 		return nil
 	}
 
 	if offset, contains := TIMERS_RANGE.Contains(absAddr); contains {
 		log.Infof("Unhandled write to timer register at addr 0x%08x", offset)
+		return nil
+	}
+
+	if offset, contains := RAM_RANGE.Contains(absAddr); contains {
+		b.ram.store16(offset, val)
 		return nil
 	}
 

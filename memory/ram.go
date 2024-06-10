@@ -29,6 +29,14 @@ func (r *Ram) load32(offset uint32) uint32 {
 	return utils.BytesToUint32(b0, b1, b2, b3)
 }
 
+// load16 load 16-bit little endian halfword at offset
+func (r *Ram) load16(offset uint32) uint16 {
+	b0 := r.data[offset + 0]
+	b1 := r.data[offset + 1]
+
+	return utils.BytesToUint16(b0, b1)
+}
+
 // load8 fetch byte at offset
 func (r *Ram) load8(offset uint32) uint8 {
 	return r.data[offset]
@@ -42,6 +50,15 @@ func (r *Ram) store32(offset, val uint32)  {
 	r.data[offset + 1] = b1
 	r.data[offset + 2] = b2
 	r.data[offset + 3] = b3
+}
+
+// store16 store 16 bit little endia halfword val into offset
+func (r *Ram) store16(offset uint32, val uint16)  {
+	b0 := uint8(val)
+	b1 := uint8(val >> 8)
+
+	r.data[offset + 0] = b0
+	r.data[offset + 1] = b1
 }
 
 // store8 store byte val into offset in data

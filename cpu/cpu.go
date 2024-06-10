@@ -70,6 +70,12 @@ func (cpu *CPU) SetCopZeroReg(index RegIndex, val uint32) {
 	_ = cpu.copZeroRegs.SetReg(index, val)
 }
 
+// SetLoadReg set the loadReg to index and val
+func (cpu *CPU) SetLoadReg(index RegIndex, val uint32)  {
+	cpu.loadReg.target = index
+	cpu.loadReg.val = val
+}
+
 // RunNextInstruction run the next instruction
 func (cpu *CPU) RunNextInstruction() {
 	instruction := Instruction(cpu.load32(cpu.pc))
@@ -88,7 +94,7 @@ func (cpu *CPU) RunNextInstruction() {
 	cpu.SetReg(cpu.loadReg.target, cpu.loadReg.val)
 
 	// reset load to target 0 for next instr
-	cpu.loadReg = LoadRegPair{0, 0}
+	cpu.SetLoadReg(0, 0)
 
 	cpu.decodeAndExecuteInstr(instruction)
 
@@ -133,10 +139,14 @@ func (cpu *CPU) decodeAndExecuteInstr(instruction Instruction) {
 		cpu.orImmediate(instruction)
 	case 0x20: // LB
 		cpu.loadByte(instruction)
+	case 0x21: // LH
+		cpu.loadHalfWord(instruction)
 	case 0x23: // LW
 		cpu.loadWord(instruction)
 	case 0x24: // LBU
 		cpu.loadByteUnsigned(instruction)
+	case 0x25: // LHU
+		cpu.loadHalfWordUnsigned(instruction)
 	case 0x28: // SB
 		cpu.storeByte(instruction)
 	case 0x29: // SH
@@ -175,6 +185,12 @@ func (cpu *CPU) executeSubInstr(instruction Instruction) {
 		cpu.shiftRightLogical(instruction)
 	case 0x03: // SRA
 		cpu.shiftRightArithmetic(instruction)
+	case 0x04: // SLLV
+		cpu.shiftLeftLogicalVar(instruction)
+	case 0x06: // SRLV
+		cpu.shiftRightLogicalVar(instruction)
+	case 0x07: // SRAV
+		cpu.shiftRightArithmeticVar(instruction)
 	case 0x08: // JR
 		cpu.jumpRegister(instruction)
 	case 0x09: // JALR
@@ -189,6 +205,8 @@ func (cpu *CPU) executeSubInstr(instruction Instruction) {
 		cpu.moveFromLO(instruction)
 	case 0x13: // MTLO
 		cpu.moveToLO(instruction)
+	case 0x19: // MULTU
+		cpu.multiplyUnsigned(instruction)
 	case 0x1a: // DIV
 		cpu.div(instruction)
 	case 0x1b: // DIVU
@@ -203,6 +221,8 @@ func (cpu *CPU) executeSubInstr(instruction Instruction) {
 		cpu.and(instruction)
 	case 0x25: // OR
 		cpu.or(instruction)
+	case 0x27: // NOR
+		cpu.nor(instruction)
 	case 0x2a: // SLT
 		cpu.setIfLessThan(instruction)
 	case 0x2b: // SLTU
@@ -217,6 +237,16 @@ func (cpu *CPU) load32(addr uint32) uint32 {
 	data, err := cpu.bus.Load32(addr)
 	if err != nil {
 		log.Fatalf("Load32 failed - %v", err)
+	}
+
+	return data
+}
+
+// Load16 load 16-bit halfword
+func (cpu *CPU) Load16(addr uint32) uint16 {
+	data, err := cpu.bus.Load16(addr)
+	if err != nil {
+		log.Fatalf("Load16 failed - %v", err)
 	}
 
 	return data

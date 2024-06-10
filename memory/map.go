@@ -18,6 +18,7 @@ var (
 	EXPANSION_2   = Range{start: 0x1f802000, length: 66}
 	IRQ_CONTROL   = Range{start: 0x1f801070, length: 8} // interrupr request
 	TIMERS_RANGE  = Range{start: 0x1f801100, length: 48} // TODO - check, idk the fucking memory map is confusing as shit
+	DMA_RANGE     = Range{start: 0x1f801080, length: 0x80}
 )
 
 // Contains whether or not addr is inside range

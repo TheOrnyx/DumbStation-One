@@ -10,6 +10,11 @@ func BytesToUint32(b0, b1, b2, b3 byte) uint32 {
 	return uint32(b0) | (uint32(b1) << 8) | (uint32(b2) << 16) | (uint32(b3) << 24)
 }
 
+// BytesToUint16 convert 2 bytes to one little endian uint16 value
+func BytesToUint16(b0, b1 byte) uint16 {
+	return uint16(b0) | (uint16(b1) << 8)
+}
+
 // Uint32ToBytes convert a uint32 word to it's 4 individual bytes in
 // little endian form
 func Uint32ToBytes(data uint32) (b0, b1, b2, b3 byte) {

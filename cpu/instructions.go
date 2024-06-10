@@ -111,6 +111,15 @@ func (cpu *CPU) andImmediate(instr Instruction) {
 	cpu.SetReg(instr.targetReg(), val)
 }
 
+// nor bitwise not or
+func (cpu *CPU) nor(instr Instruction)  {
+	source := cpu.GetReg(instr.sourceReg())
+	target := cpu.GetReg(instr.targetReg())
+	val := ^(source | target)
+
+	cpu.SetReg(instr.destReg(), val)
+}
+
 // storeWord Store Word
 func (cpu *CPU) storeWord(instr Instruction) {
 	if cpu.GetCopZeroReg(REG_SR)&0x10000 != 0 {
@@ -173,16 +182,40 @@ func (cpu *CPU) loadWord(instr Instruction) {
 	}
 
 	immediate := instr.immediate16Se()
-	targetReg := instr.targetReg()
 	sourceReg := instr.sourceReg()
 	addr := cpu.GetReg(sourceReg) + immediate
 
 	if addr % 4 == 0 {
 		val := cpu.load32(addr)
-		cpu.loadReg = LoadRegPair{targetReg, val} // TODO - once again check performance
+		cpu.SetLoadReg(instr.targetReg(), val)
 	} else {
 		cpu.Exception(LoadAddressError)
 	}
+}
+
+// loadHalfWordUnsigned load half word unsigned from memory
+func (cpu *CPU) loadHalfWordUnsigned(instr Instruction)  {
+	immediate := instr.immediate16Se()
+	source := cpu.GetReg(instr.sourceReg())
+	addr := source + immediate
+
+	if addr % 2 == 0 {
+		val := cpu.Load16(addr)
+		cpu.SetLoadReg(instr.targetReg(), uint32(val))
+	} else {
+		cpu.Exception(LoadAddressError)
+	}
+}
+
+// loadHalfWord load halfword (signed)
+func (cpu *CPU) loadHalfWord(instr Instruction)  {
+	immediate := instr.immediate16Se()
+	source := cpu.GetReg(instr.sourceReg())
+	addr := source + immediate
+
+	val := int16(cpu.Load16(addr))
+
+	cpu.SetLoadReg(instr.targetReg(), uint32(val))
 }
 
 // loadByte load signed byte
@@ -219,6 +252,18 @@ func (cpu *CPU) shiftLeftLogical(instr Instruction) {
 	cpu.SetReg(instr.destReg(), val)
 }
 
+// shiftLeftLogicalVar shift left logical variable, basically regular
+// but shift amount is in regiter
+func (cpu *CPU) shiftLeftLogicalVar(instr Instruction)  {
+	target := cpu.GetReg(instr.targetReg())
+	shift := cpu.GetReg(instr.sourceReg())
+
+	// shift amount is truncated to 5 bits
+	val := target << (shift & 0x1f)
+
+	cpu.SetReg(instr.destReg(), val)
+}
+
 // shiftRightLogical shift right logical
 func (cpu *CPU) shiftRightLogical(instr Instruction)  {
 	shift := instr.shiftImmediate()
@@ -228,12 +273,36 @@ func (cpu *CPU) shiftRightLogical(instr Instruction)  {
 	cpu.SetReg(instr.destReg(), val)
 }
 
+// shiftRightLogicalVar shift right logical variable, basically regular
+// but shift amount is in register
+func (cpu *CPU) shiftRightLogicalVar(instr Instruction)  {
+	target := cpu.GetReg(instr.targetReg())
+	shift := cpu.GetReg(instr.sourceReg())
+
+	// shift amount is truncated to 5 bits
+	val := target >> (shift & 0x1f)
+
+	cpu.SetReg(instr.destReg(), val)
+}
+
+
 // shiftRightArithmetic shift right arithmetic
 func (cpu *CPU) shiftRightArithmetic(instr Instruction) {
 	shift := instr.shiftImmediate()
 	target := int32(cpu.GetReg(instr.targetReg()))
 
 	val := target >> int32(shift) // TODO - check shift should be cast to int32
+
+	cpu.SetReg(instr.destReg(), uint32(val))
+}
+
+// shiftRightArithmeticVar shift right arithmetic with variable
+func (cpu *CPU) shiftRightArithmeticVar(instr Instruction)  {
+	target := cpu.GetReg(instr.destReg())
+	shift := cpu.GetReg(instr.sourceReg())
+
+	// shift amount truncated to 5 bits again
+	val := int32(target) >> (shift & 0x1f)
 
 	cpu.SetReg(instr.destReg(), uint32(val))
 }
@@ -482,6 +551,17 @@ func (cpu *CPU) divUnsigned(instr Instruction)  {
 		cpu.hi = numerator % denominator
 		cpu.lo = numerator / denominator
 	}
+}
+
+// multiplyUnsigned multiply unsigned
+func (cpu *CPU) multiplyUnsigned(instr Instruction)  {
+	a := uint64(cpu.GetReg(instr.sourceReg()))
+	b := uint64(cpu.GetReg(instr.targetReg()))
+
+	val := a*b
+
+	cpu.hi = uint32((val >> 32))
+	cpu.lo = uint32(val)
 }
 
 // moveFromLO move from LO into general purpsoe register
