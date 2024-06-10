@@ -10,5 +10,43 @@ But yeah, enjoy me slowly losing it
 
 * Day Two <2024-06-07 Fri>
 :LOGBOOK:
-CLOCK: [2024-06-07 Fri 12:26]
+CLOCK: [2024-06-07 Fri 12:26]--[2024-06-07 Fri 17:53] =>  5:27
 :END:
+Did some more of the like CPU instructions and sutff. ngl completely forgot to
+write here
+
+* Day Three <2024-06-10 Mon>
+:LOGBOOK:
+CLOCK: [2024-06-10 Mon 12:28]--[2024-06-10 Mon 17:49] =>  5:21
+:END:
+
+Waow... what a day. I uh, did way too much
+
+Like I've basically been following the guide and doing whatever it does, but I
+think I'm gonna do some major refactoring soon because a lot of the shit in that
+guide is like really gross.
+Like it's really weird some of the decisions they made tbh.
+
+But yeah just been working on more of the instructions and memory map and
+stuff. also.
+FUCK the FUCKING memory map on the stupid psx spx site. it is the most confusing
+thing ever. Like most of the things don't tell you how large the stuff is and
+the guide likes to leave out some vital information. Like it's fine not telling
+the basic shit but when you suddenly drop some random new memory range onto us
+and not tell us where it starts or how long it is it's confusing as fuck because
+the documentation doesn't tell you shit lmao, so atm i've got a bunch of guesses
+for that stuff and I'm waiting for it to collapse.
+
+Also god damn does this guy go back and forth between redoing half the codebase,
+like yeah sure tell the reader "okay now go back and change everything"
+Also like why does he do it twice in one small section, like he goes "okay now
+change everything to use currentpc" and then he goes "hmm, nah that's not right,
+change it again to do this" like... why not just do the second one, or describe
+why the first doesn't work etc etc.
+
+Also i suck at reading, like badly. I CANNOT to ranges on my own lmao, so it
+sucks they aren't nicely there and shit.
+
+But yeah, i see a lot of refactoring in my future, probs gonna revamp the
+instruction system so it's a massive array like last time lmao
+
