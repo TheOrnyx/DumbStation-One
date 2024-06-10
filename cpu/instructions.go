@@ -295,12 +295,14 @@ func (cpu *CPU) jumpAndLinkReg(instr Instruction) {
 	cpu.SetReg(instr.destReg(), returnAddr)
 
 	cpu.nextPC = jumpLoc
+	cpu.branching = true
 }
 
 // jumpRegister jump to val in register
 func (cpu *CPU) jumpRegister(instr Instruction) {
 	sourceReg := cpu.GetReg(instr.sourceReg())
 	cpu.nextPC = sourceReg
+	cpu.branching = true
 }
 
 // branchNotEqual branch if not equal
@@ -517,4 +519,18 @@ func (cpu *CPU) moveFromCopZero(instr Instruction) {
 	val := cpu.GetCopZeroReg(copReg)
 
 	cpu.loadReg = LoadRegPair{cpuReg, val}
+}
+
+// returnFromException return from exception
+func (cpu *CPU) returnFromException(instr Instruction)  {
+	// there are other instructions with same encoding so make sure we don't use
+	if instr & 0x3f != 0b010000 {
+		log.Panicf("Invalid cop0 instruction: %v", instr)
+	}
+
+	// restore pre-exception mode by shifting interrupt enable/user
+	// mode stack back to original position
+	mode := cpu.copZeroRegs.sr & 0x3f
+	cpu.copZeroRegs.sr &= ^uint32(0x3f)
+	cpu.copZeroRegs.sr |= mode >> 2
 }

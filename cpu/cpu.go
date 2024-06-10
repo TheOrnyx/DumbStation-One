@@ -20,6 +20,8 @@ type CPU struct {
 	hi              uint32           // HI register for division remainder and multiplication high result
 	lo              uint32           // LO register for division quotient and multiplication low result
 	currentPC uint32 // address of instruction currently being executed. used for setting EPC in exceptions
+	branching bool // set by current instruction if branch occured and next instruction will be in delay slot
+	instrInDelaySlot bool // set if the current instruction executes in the delay slot
 }
 
 // NewCPU Create and return a new CPU that's been reset
@@ -35,6 +37,8 @@ func NewCPU(bus *memory.Bus) *CPU {
 func (cpu *CPU) Reset() {
 	cpu.pc = 0xbfc00000 // reset to beginning of the BIOS
 	cpu.nextPC = cpu.pc + 4
+	cpu.branching = false
+	cpu.instrInDelaySlot = false
 	cpu.regs = Registers{zero: 0} // TODO - probably reset to garbage but idc
 	cpu.outRegs = cpu.regs
 	cpu.loadReg = LoadRegPair{0, 0}
@@ -69,6 +73,9 @@ func (cpu *CPU) SetCopZeroReg(index RegIndex, val uint32) {
 // RunNextInstruction run the next instruction
 func (cpu *CPU) RunNextInstruction() {
 	instruction := Instruction(cpu.load32(cpu.pc))
+
+	cpu.instrInDelaySlot = cpu.branching
+	cpu.branching = false
 
 	// save address of current instruction
 	cpu.currentPC = cpu.pc
@@ -146,10 +153,12 @@ func (cpu *CPU) decodeAndExecuteInstr(instruction Instruction) {
 // copZeroOpcode Coprocessor 0 opcode
 func (cpu *CPU) copZeroOpcode(instruction Instruction) {
 	switch instruction.copOpcode() {
-	case 0x00: // MFC0
+	case 0b00000: // MFC0
 		cpu.moveFromCopZero(instruction)
 	case 0b00100: // MTC0
 		cpu.moveToCopZero(instruction)
+	case 0b10000: // RFE
+		cpu.returnFromException(instruction)
 	default:
 		log.Panicf("Unknown cop zero instruction - 0x%08x, 0x%02x", instruction, instruction.copOpcode())
 	}
@@ -255,6 +264,7 @@ func (cpu *CPU) branch(offset uint32) {
 	cpu.nextPC += offset
 
 	cpu.nextPC -= 4 // have to compensate for the += 4 in the run next instr
+	cpu.branching = true
 }
 
 // jump jump
@@ -262,6 +272,7 @@ func (cpu *CPU) jump(instr Instruction) {
 	immediate := instr.jumpImmediate()
 
 	cpu.nextPC = (cpu.nextPC & 0xf0000000) | (immediate << 2)
+	cpu.branching = true
 }
 
 // exception enums
@@ -295,6 +306,14 @@ func (cpu *CPU) Exception(cause int)  {
 
 	cpu.copZeroRegs.cause = uint32(cause) << 2
 	cpu.copZeroRegs.epc = cpu.currentPC
+
+	if cpu.instrInDelaySlot {
+		// when exception occurs in delay slot 'epc' points to branch
+		// instruction and bit31 of cause is set
+		cpu.copZeroRegs.epc -= 4
+		cpu.copZeroRegs.cause |= 1 << 31
+	}
+	
 	cpu.pc = handler
 	cpu.nextPC = cpu.pc + 4
 }
