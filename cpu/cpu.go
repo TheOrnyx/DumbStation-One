@@ -122,10 +122,14 @@ func (cpu *CPU) executeSubInstr(instruction Instruction) {
 	switch instruction.subFunction() {
 	case 0x00: // SLL
 		cpu.shiftLeftLogical(instruction)
+	case 0x21: // ADDU
+		cpu.addUnsigned(instruction)
 	case 0x25: // OR
 		cpu.or(instruction)
+	case 0x2b: // SLTU
+		cpu.setOnLessThanUnsigned(instruction)
 	default:
-		log.Panicf("Unknown sub instruction - 0x%08x", instruction)
+		log.Panicf("Unknown sub instruction - 0x%08x, 0x%02x", instruction, instruction.subFunction())
 	}
 }
 

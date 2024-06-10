@@ -24,11 +24,13 @@ func (b *Bus) Load32(addr uint32) (uint32, error) {
 		return 0xF, fmt.Errorf("Unaligned load32 address: 0x%x\n", addr)
 	}
 
-	if offset, contains := BIOS_RANGE.Contains(addr); contains {
+	maskedAddr := MaskRegion(addr)
+
+	if offset, contains := BIOS_RANGE.Contains(maskedAddr); contains {
 		return b.bios.load32(offset), nil
 	}
 
-	if offset, contains := RAM_RANGE.Contains(addr); contains {
+	if offset, contains := RAM_RANGE.Contains(maskedAddr); contains {
 		return b.ram.load32(offset), nil
 	}
 	
@@ -45,7 +47,9 @@ func (b *Bus) Store32(addr, val uint32) error {
 		return fmt.Errorf("Unaligned load32 address: 0x%x, val:0x%x\n", addr, val)
 	}
 
-	if offset, contains := MEM_CONTROL.Contains(addr); contains {
+	maskedAddr := MaskRegion(addr)
+
+	if offset, contains := SYS_CONTROL.Contains(maskedAddr); contains {
 		switch offset {
 		case 0: // expansion 1 base address
 			if val != 0x1f000000 {
@@ -64,16 +68,16 @@ func (b *Bus) Store32(addr, val uint32) error {
 		return nil
 	}
 
-	if offset, contains := RAM_RANGE.Contains(addr); contains {
+	if offset, contains := RAM_RANGE.Contains(maskedAddr); contains {
 		b.ram.store32(offset, val)
 		return nil
 	}
 
-	if _, contains := RAM_SIZE.Contains(addr); contains {
+	if _, contains := RAM_SIZE.Contains(maskedAddr); contains {
 		return nil // do nothing
 	}
 
-	if _, contains := CACHE_CONTROL.Contains(addr); contains {
+	if _, contains := CACHE_CONTROL.Contains(maskedAddr); contains {
 		log.Warnf("Cache access not implemented yet - addr 0x%08x didn't receive value 0x%08x", addr, val)
 		return nil
 	}	

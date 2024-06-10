@@ -148,6 +148,15 @@ func (cpu *CPU) addImmediate(instr Instruction)  {
 	cpu.SetReg(instr.targetReg(), result)
 }
 
+// addUnsigned Add two unsigned registers together and store in target
+func (cpu *CPU) addUnsigned(instr Instruction)  {
+	sourceReg := cpu.GetReg(instr.sourceReg())
+	targetReg := cpu.GetReg(instr.targetReg())
+	val := sourceReg + targetReg
+
+	cpu.SetReg(instr.destReg(), val)
+}
+
 // jump jump
 func (cpu *CPU) jump(instr Instruction)  {
 	immediate := instr.jumpImmediate()
@@ -173,6 +182,19 @@ func (cpu *CPU) branchNotEqual(instr Instruction)  {
 	if cpu.GetReg(sourceReg) != cpu.GetReg(targetReg) {
 		cpu.branch(offset)
 	}
+}
+
+// setOnLessThanUnsigned set the dest to 1 when source is less than target
+func (cpu *CPU) setOnLessThanUnsigned(instr Instruction)  {
+	sourceReg := cpu.GetReg(instr.sourceReg())
+	targetReg := cpu.GetReg(instr.targetReg())
+	var val uint32 = 0
+
+	if sourceReg < targetReg {
+		val = 1
+	}
+
+	cpu.SetReg(instr.destReg(), val)
 }
 
 /////////////////////////////////
