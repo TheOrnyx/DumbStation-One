@@ -24,7 +24,7 @@ var UnknownCopZeroOpcode OpCode = OpCode{fieldVal: 0xFFF, name: "Unknown Cop Zer
 		log.Panicf("Unknown SubOpcode - 0x%08x, 0x%02x", instr, instr.copOpcode())
 	}}
 
-var Opcodes [0x3f]OpCode = [0x3f]OpCode{
+var Opcodes [0x40]OpCode = [0x40]OpCode{
 	{0x00, "SPECIAL", func(cpu *CPU, instr Instruction) { cpu.executeSubInstr(instr) }},
 	{0x01, "BcondZ", func(cpu *CPU, instr Instruction) { cpu.branchVarious(instr) }},
 	{0x02, "J", func(cpu *CPU, instr Instruction) { cpu.jump(instr) }},
@@ -39,12 +39,12 @@ var Opcodes [0x3f]OpCode = [0x3f]OpCode{
 	{0x0b, "SLTIU", func(cpu *CPU, instr Instruction) { cpu.setIfLessThanImmUnsigned(instr) }},
 	{0x0c, "ANDI", func(cpu *CPU, instr Instruction) { cpu.andImmediate(instr) }},
 	{0x0d, "ORI", func(cpu *CPU, instr Instruction) { cpu.orImmediate(instr) }},
-	UnknownOpcode, // 0x0e
+	{0x0e, "XORI", func(cpu *CPU, instr Instruction) { cpu.xorImmediate(instr) }},
 	{0x0f, "LUI", func(cpu *CPU, instr Instruction) { cpu.loadUpperImmediate(instr) }},
-	{0x10, "COP", func(cpu *CPU, instr Instruction) { cpu.copZeroOpcode(instr) }},
-	UnknownOpcode, // 0x11
-	UnknownOpcode, // 0x12
-	UnknownOpcode, // 0x13
+	{0x10, "COP0", func(cpu *CPU, instr Instruction) { cpu.copZeroOpcode(instr) }},
+	{0x11, "COP1", func(cpu *CPU, instr Instruction) { cpu.copOne(instr) }},
+	{0x12, "COP2", func(cpu *CPU, instr Instruction) { cpu.copTwoOpcode(instr) }},
+	{0x13, "COP3", func(cpu *CPU, instr Instruction) { cpu.copThree(instr) }},
 	UnknownOpcode, // 0x14
 	UnknownOpcode, // 0x15
 	UnknownOpcode, // 0x16
@@ -59,38 +59,39 @@ var Opcodes [0x3f]OpCode = [0x3f]OpCode{
 	UnknownOpcode, // 0x1f
 	{0x20, "LB", func(cpu *CPU, instr Instruction) { cpu.loadByte(instr) }},
 	{0x21, "LH", func(cpu *CPU, instr Instruction) { cpu.loadHalfWord(instr) }},
-	UnknownOpcode, // 0x22
+	{0x22, "LWL", func(cpu *CPU, instr Instruction) { cpu.loadWordLeft(instr) }},
 	{0x23, "LW", func(cpu *CPU, instr Instruction) { cpu.loadWord(instr) }},
 	{0x24, "LBU", func(cpu *CPU, instr Instruction) { cpu.loadByteUnsigned(instr) }},
 	{0x25, "LHU", func(cpu *CPU, instr Instruction) { cpu.loadHalfWordUnsigned(instr) }},
-	UnknownOpcode, // 0x26
+	{0x26, "LWR", func(cpu *CPU, instr Instruction) { cpu.loadWordRight(instr) }},
 	UnknownOpcode, // 0x27
 	{0x28, "SB", func(cpu *CPU, instr Instruction) { cpu.storeByte(instr) }},
 	{0x29, "SH", func(cpu *CPU, instr Instruction) { cpu.storeHalfWord(instr) }},
-	UnknownOpcode, // 0x2a
+	{0x2a, "SWL", func(cpu *CPU, instr Instruction) { cpu.storeWordLeft(instr) }},
 	{0x2b, "SW", func(cpu *CPU, instr Instruction) { cpu.storeWord(instr) }},
 	UnknownOpcode, // 0x2c
 	UnknownOpcode, // 0x2d
-	UnknownOpcode, // 0x2e
+	{0x2e, "SWR", func(cpu *CPU, instr Instruction) { cpu.storeWordRight(instr) }},
 	UnknownOpcode, // 0x2f
-	UnknownOpcode, // 0x30
-	UnknownOpcode, // 0x31
-	UnknownOpcode, // 0x32
-	UnknownOpcode, // 0x33
+	{0x30, "LWC0", func(cpu *CPU, instr Instruction) { cpu.loadWordInCopZero(instr) }},
+	{0x31, "LWC1", func(cpu *CPU, instr Instruction) { cpu.loadWordInCopOne(instr) }},
+	{0x32, "LWC2", func(cpu *CPU, instr Instruction) { cpu.loadWordInCopTwo(instr) }},
+	{0x33, "LWC3", func(cpu *CPU, instr Instruction) { cpu.loadWordInCopThree(instr) }},
 	UnknownOpcode, // 0x34
 	UnknownOpcode, // 0x35
 	UnknownOpcode, // 0x36
 	UnknownOpcode, // 0x37
-	UnknownOpcode, // 0x39
-	UnknownOpcode, // 0x3a
-	UnknownOpcode, // 0x3b
+	{0x38, "SWC0", func(cpu *CPU, instr Instruction) { cpu.storeWordInCopZero(instr) }},
+	{0x39, "SWC1", func(cpu *CPU, instr Instruction) { cpu.storeWordInCopOne(instr) }},
+	{0x3a, "SWC2", func(cpu *CPU, instr Instruction) { cpu.storeWordInCopTwo(instr) }},
+	{0x3b, "SWC3", func(cpu *CPU, instr Instruction) { cpu.storeWordInCopThree(instr) }},
 	UnknownOpcode, // 0x3c
 	UnknownOpcode, // 0x3d
 	UnknownOpcode, // 0x3e
 	UnknownOpcode, // 0x3f
 }
 
-var SubOpcodes [0x3f]OpCode = [0x3f]OpCode{
+var SubOpcodes [0x40]OpCode = [0x40]OpCode{
 	{0x00, "SLL", func(cpu *CPU, instr Instruction) { cpu.shiftLeftLogical(instr) }},
 	UnknownSubOpcode,
 	{0x02, "SRL", func(cpu *CPU, instr Instruction) { cpu.shiftRightLogical(instr) }},
@@ -104,7 +105,7 @@ var SubOpcodes [0x3f]OpCode = [0x3f]OpCode{
 	UnknownSubOpcode, // 0x0a
 	UnknownSubOpcode, // 0x0b
 	{0x0c, "SYSCALL", func(cpu *CPU, instr Instruction) { cpu.syscall(instr) }},
-	UnknownSubOpcode, // 0x0d
+	{0x0d, "BREAK", func(cpu *CPU, instr Instruction) { cpu.breakEx(instr) }},
 	UnknownSubOpcode, // 0x0e
 	UnknownSubOpcode, // 0x0f
 	{0x10, "MFHI", func(cpu *CPU, instr Instruction) { cpu.moveFromHI(instr) }},
@@ -115,7 +116,7 @@ var SubOpcodes [0x3f]OpCode = [0x3f]OpCode{
 	UnknownSubOpcode, // 0x15
 	UnknownSubOpcode, // 0x16
 	UnknownSubOpcode, // 0x17
-	UnknownSubOpcode, // 0x18
+	{0x18, "MULT", func(cpu *CPU, instr Instruction) { cpu.multiply(instr) }},
 	{0x19, "MULTU", func(cpu *CPU, instr Instruction) { cpu.multiplyUnsigned(instr) }},
 	{0x1a, "DIV", func(cpu *CPU, instr Instruction) { cpu.div(instr) }},
 	{0x1b, "DIVU", func(cpu *CPU, instr Instruction) { cpu.divUnsigned(instr) }},
@@ -125,11 +126,11 @@ var SubOpcodes [0x3f]OpCode = [0x3f]OpCode{
 	UnknownSubOpcode, // 0x1f
 	{0x20, "ADD", func(cpu *CPU, instr Instruction) { cpu.add(instr) }},
 	{0x21, "ADDU", func(cpu *CPU, instr Instruction) { cpu.addUnsigned(instr) }},
-	UnknownSubOpcode, // 0x22
+	{0x22, "SUB", func(cpu *CPU, instr Instruction) { cpu.sub(instr) }},
 	{0x23, "SUBU", func(cpu *CPU, instr Instruction) { cpu.subUnsigned(instr) }},
 	{0x24, "AND", func(cpu *CPU, instr Instruction) { cpu.and(instr) }},
 	{0x25, "OR", func(cpu *CPU, instr Instruction) { cpu.or(instr) }},
-	UnknownSubOpcode, // 0x26
+	{0x26, "XOR", func(cpu *CPU, instr Instruction) { cpu.xor(instr) }},
 	{0x27, "NOR", func(cpu *CPU, instr Instruction) { cpu.nor(instr) }},
 	UnknownSubOpcode, // 0x28
 	UnknownSubOpcode, // 0x29
@@ -147,6 +148,7 @@ var SubOpcodes [0x3f]OpCode = [0x3f]OpCode{
 	UnknownSubOpcode, // 0x35
 	UnknownSubOpcode, // 0x36
 	UnknownSubOpcode, // 0x37
+	UnknownSubOpcode, // 0x38
 	UnknownSubOpcode, // 0x39
 	UnknownSubOpcode, // 0x3a
 	UnknownSubOpcode, // 0x3b

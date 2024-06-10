@@ -120,6 +120,24 @@ func (cpu *CPU) nor(instr Instruction)  {
 	cpu.SetReg(instr.destReg(), val)
 }
 
+// xor bitwise xor between two registers
+func (cpu *CPU) xor(instr Instruction) {
+	sourceReg := instr.sourceReg()
+	targetReg := instr.targetReg()
+
+	val := cpu.GetReg(sourceReg) ^ cpu.GetReg(targetReg)
+	cpu.SetReg(instr.destReg(), val)
+}
+
+// xorImmediate bitwise xor immediate
+func (cpu *CPU) xorImmediate(instr Instruction) {
+	immediate := instr.immediate16()
+	sourceReg := instr.sourceReg()
+	val := cpu.GetReg(sourceReg) ^ immediate
+
+	cpu.SetReg(instr.targetReg(), val)
+}
+
 // storeWord Store Word
 func (cpu *CPU) storeWord(instr Instruction) {
 	if cpu.GetCopZeroReg(REG_SR)&0x10000 != 0 {
@@ -137,7 +155,66 @@ func (cpu *CPU) storeWord(instr Instruction) {
 	} else {
 		cpu.Exception(StoreAddressError)
 	}
+}
 
+// storeWordLeft store word left with unaligned
+func (cpu *CPU) storeWordLeft(instr Instruction)  {
+	immediate := instr.immediate16Se()
+	targetReg := instr.targetReg()
+	source := cpu.GetReg(instr.sourceReg())
+
+	addr := source + immediate
+	val := cpu.GetReg(targetReg)
+
+	alignedAddr := addr & (^uint32(3))
+	// load current value at target
+	curMem := cpu.load32(alignedAddr)
+
+	var mem uint32
+	switch addr & 3 {
+	case 0:
+		mem = (curMem & 0xffffff00) | (val >> 24)
+	case 1:
+		mem = (curMem & 0xffff0000) | (val >> 16)
+	case 2:
+		mem = (curMem & 0xff000000) | (val >> 8)
+	case 3:
+		mem = (curMem & 0x00000000) | (val >> 0)
+	default:
+		log.Panicf("storeWordLeft failed - This shouldn't happen: 0x%08x", addr & 3)
+	}
+
+	cpu.Store32(alignedAddr, mem)
+}
+
+// storeWordRight store word right unaligned
+func (cpu *CPU) storeWordRight(instr Instruction)  {
+	immediate := instr.immediate16Se()
+	targetReg := instr.targetReg()
+	source := cpu.GetReg(instr.sourceReg())
+
+	addr := source + immediate
+	val := cpu.GetReg(targetReg)
+
+	alignedAddr := addr & (^uint32(3))
+	// load current value at target
+	curMem := cpu.load32(alignedAddr)
+
+	var mem uint32
+	switch addr & 3 {
+	case 0:
+		mem = (curMem & 0x00000000) | (val << 0)
+	case 1:
+		mem = (curMem & 0x000000ff) | (val << 8)
+	case 2:
+		mem = (curMem & 0x0000ffff) | (val << 16)
+	case 3:
+		mem = (curMem & 0x00ffffff) | (val << 24)
+	default:
+		log.Panicf("storeWordLeft failed - This shouldn't happen: 0x%08x", addr & 3)
+	}
+
+	cpu.Store32(alignedAddr, mem)
 }
 
 // storeHalfWord store half word into memory
@@ -216,6 +293,67 @@ func (cpu *CPU) loadHalfWord(instr Instruction)  {
 	val := int16(cpu.Load16(addr))
 
 	cpu.SetLoadReg(instr.targetReg(), uint32(val))
+}
+
+// loadWordLeft load word left - can load unaligned?
+func (cpu *CPU) loadWordLeft(instr Instruction)  {
+	immediate := instr.immediate16Se()
+	source := cpu.GetReg(instr.sourceReg())
+
+	addr := source + immediate
+
+	curVal := cpu.outRegs.GetReg(instr.targetReg()) // TODO - check this is right?
+
+	alignedAddr := addr & (^uint32(3))
+	alignedWord := cpu.load32(alignedAddr)
+
+	// based on alignment we fetch 1,2,3 or 4 most significant bytes
+	var val uint32
+	switch addr & 3 {
+	case 0:
+		val = (curVal & 0x00ffffff) | (alignedWord << 24)
+	case 1:
+		val = (curVal & 0x0000ffff) | (alignedWord << 16)
+	case 2:
+		val = (curVal & 0x000000ff) | (alignedWord << 8)
+	case 3:
+		val = (curVal & 0x00000000) | (alignedWord << 0)
+	default:
+		log.Panicf("LoadWordLeft failed - This shouldn't be reached: 0x%08x", addr & 3)
+	}
+
+	cpu.SetLoadReg(instr.targetReg(), val)
+}
+
+// loadWordRight load word right - can be unaligned
+func (cpu *CPU) loadWordRight(instr Instruction)  {
+	immediate := instr.immediate16Se()
+	targetReg := instr.targetReg()
+	source := cpu.GetReg(instr.sourceReg())
+
+	addr := source + immediate
+
+	curVal := cpu.outRegs.GetReg(targetReg)
+
+	alignedAddr := addr & (^uint32(3))
+	alignedWord := cpu.load32(alignedAddr)
+
+	// based on address alignment we fetch 1,2,3 or 4 least sginificatn bytes
+	var val uint32
+	switch addr & 3 {
+	case 0:
+		val = (curVal & 0x00000000) | (alignedWord >> 0)
+	case 1:
+		val = (curVal & 0xff000000) | (alignedWord >> 8)
+	case 2:
+		val = (curVal & 0xffff0000) | (alignedWord >> 16)
+	case 3:
+		val = (curVal & 0xffffff00) | (alignedWord >> 24)
+	case 4:
+		log.Panicf("Loadwordright failed - shouldn't be reached: 0x%08x", addr & 3)
+	}
+
+	cpu.SetLoadReg(targetReg, val)
 }
 
 // loadByte load signed byte
@@ -349,6 +487,19 @@ func (cpu *CPU) addUnsigned(instr Instruction) {
 	sourceReg := cpu.GetReg(instr.sourceReg())
 	targetReg := cpu.GetReg(instr.targetReg())
 	val := sourceReg + targetReg
+
+	cpu.SetReg(instr.destReg(), val)
+}
+
+// sub sub (signed) and check for overflows
+func (cpu *CPU) sub(instr Instruction)  {
+	sourceReg := cpu.GetReg(instr.sourceReg())
+	targetReg := cpu.GetReg(instr.targetReg())
+
+	val, overflowed := utils.SubSigned16(sourceReg, targetReg) // TODO - check
+	if overflowed {
+		cpu.Exception(Overflow)
+	}
 
 	cpu.SetReg(instr.destReg(), val)
 }
@@ -553,6 +704,17 @@ func (cpu *CPU) divUnsigned(instr Instruction)  {
 	}
 }
 
+// multiply multiply (signed)
+func (cpu *CPU) multiply(instr Instruction)  {
+	a := int64(int32(cpu.GetReg(instr.sourceReg())))
+	b := int64(int32(cpu.GetReg(instr.targetReg())))
+
+	val := uint64(a * b)
+
+	cpu.hi = uint32(val >> 32)
+	cpu.lo = uint32(val)
+}
+
 // multiplyUnsigned multiply unsigned
 func (cpu *CPU) multiplyUnsigned(instr Instruction)  {
 	a := uint64(cpu.GetReg(instr.sourceReg()))
@@ -593,6 +755,11 @@ func (cpu *CPU) syscall(instr Instruction)  {
 	cpu.Exception(SysCall)
 }
 
+// breakEx break exception
+func (cpu *CPU) breakEx(instr Instruction)  {
+	cpu.Exception(Break)
+}
+
 /////////////////////////////////
 // Coprocessor Instructions ✨ //
 /////////////////////////////////
@@ -630,3 +797,54 @@ func (cpu *CPU) returnFromException(instr Instruction)  {
 	cpu.copZeroRegs.sr |= mode >> 2
 }
 
+// copOne copropcessor 1 opcode (doesn't exist so throws exception)
+func (cpu *CPU) copOne(instr Instruction)  {
+	cpu.Exception(CoprocessorError)
+}
+
+// copThree copropcessor 3 opcode (doesn't exist so throws exception)
+func (cpu *CPU) copThree(instr Instruction)  {
+	cpu.Exception(CoprocessorError)
+}
+
+// loadWordInCopZero load word in cop 0 (throws exception)
+func (cpu *CPU) loadWordInCopZero(instr Instruction)  {
+	cpu.Exception(CoprocessorError)
+}
+
+// loadWordInCopOne load word in cop 1 (throws exception)
+func (cpu *CPU) loadWordInCopOne(instr Instruction)  {
+	cpu.Exception(CoprocessorError)
+}
+
+// loadWordInCopTwo load word in cop 2
+func (cpu *CPU) loadWordInCopTwo(instr Instruction)  {
+	log.Panicf("(Not implemented yet) unhandled LWC2: 0x%08x", instr)
+}
+
+// loadWordInCopThree load word in cop 3 (throws exception)
+func (cpu *CPU) loadWordInCopThree(instr Instruction)  {
+	cpu.Exception(CoprocessorError)
+}
+
+
+
+// storeWordInCopZero store word in cop 0 (throws exception)
+func (cpu *CPU) storeWordInCopZero(instr Instruction)  {
+	cpu.Exception(CoprocessorError)
+}
+
+// storeWordInCopOne store word in cop 1 (throws exception)
+func (cpu *CPU) storeWordInCopOne(instr Instruction)  {
+	cpu.Exception(CoprocessorError)
+}
+
+// storeWordInCopTwo store word in cop 2
+func (cpu *CPU) storeWordInCopTwo(instr Instruction)  {
+	log.Panicf("(Not implemented yet) unhandled SWC2: 0x%08x", instr)
+}
+
+// storeWordInCopThree store word in cop 3 (throws exception)
+func (cpu *CPU) storeWordInCopThree(instr Instruction)  {
+	cpu.Exception(CoprocessorError)
+}

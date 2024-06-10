@@ -20,9 +20,9 @@ func NewBus(bios *Bios) *Bus {
 // Load32 load and return the value at addr on the bus
 func (b *Bus) Load32(addr uint32) (uint32, error) {
 	// check that memory address isn't unaligned
-	if addr % 4 != 0 {
-		return 0xF, fmt.Errorf("Unaligned load32 address: 0x%x\n", addr)
-	}
+	// if addr % 4 != 0 {
+	// 	return 0xF, fmt.Errorf("Unaligned load32 address: 0x%x\n", addr)
+	// }
 
 	absAddr := MaskRegion(addr)
 
@@ -44,9 +44,14 @@ func (b *Bus) Load32(addr uint32) (uint32, error) {
 		return 0, nil
 	}
 
-	if _, contains := GPU_RANGE.Contains(absAddr); contains {
-		log.Infof("(Not implemented yet) GPU 32bit read at: 0x%08x", absAddr)
-		return 0, nil
+	if offset, contains := GPU_RANGE.Contains(absAddr); contains {
+		log.Infof("(Not fully implemented yet) GPU 32bit read at: 0x%08x", absAddr)
+		switch offset {
+		case 4: // gpustat set bit 28 so gpu is ready to receive DMA blocks
+			return 0x10000000, nil
+		default:
+			return 0, nil
+		}
 	}
 	
 	return 0xF, fmt.Errorf("Unknown load32 at address 0x%08x", addr)	
@@ -100,9 +105,9 @@ func (b *Bus) Load8(addr uint32) (uint8, error) {
 // TODO - maybe clean this up, it's kinda gross
 func (b *Bus) Store32(addr, val uint32) error {
 	// check that memory address isn't unaligned
-	if addr % 4 != 0 {
-		return fmt.Errorf("Unaligned load32 address: 0x%x, val:0x%x\n", addr, val)
-	}
+	// if addr % 4 != 0 {
+	// 	return fmt.Errorf("Unaligned load32 address: 0x%x, val:0x%x\n", addr, val)
+	// }
 
 	absAddr := MaskRegion(addr)
 
@@ -164,9 +169,9 @@ func (b *Bus) Store32(addr, val uint32) error {
 
 // Store16 store 16 bit value into memory
 func (b *Bus) Store16(addr uint32, val uint16) error {
-	if addr % 2 != 0 {
-		return fmt.Errorf("Unaligned Store16 address: 0x%x, val:0x%x\n", addr, val)
-	}
+	// if addr % 2 != 0 {
+	// 	return fmt.Errorf("Unaligned Store16 address: 0x%x, val:0x%x\n", addr, val)
+	// }
 
 	absAddr := MaskRegion(addr)
 

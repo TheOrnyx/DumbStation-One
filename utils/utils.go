@@ -50,6 +50,22 @@ func AddSigned16(val1, val2 uint32) (result uint32, overflowed bool) {
 	// return uint32(res), false
 }
 
+// SubSigned16 subtract two signed 16-bit values and return the result
+// and whether they overflowed
+//
+// FIXME - check this cuz it probs ain't right
+func SubSigned16(val1, val2 uint32) (result uint32, overflowed bool) {
+	sVal1 := int32(val1)
+	sVal2 := int32(val2)
+
+	res := int64(sVal1) - int64(sVal2)
+	if res > math.MaxInt32 || res < math.MinInt32 {
+		return 0, true
+	}
+
+	return uint32(int32(res)), false
+}
+
 // // BoolToInt[T constrains.Integer] convert conditional to 0 or 1 of type
 // func BoolToInt[T constraints.Integer](cond bool) T {
 // 	res := 0

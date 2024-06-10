@@ -127,6 +127,11 @@ func (cpu *CPU) copZeroOpcode(instruction Instruction) {
 	}
 }
 
+// copTwoOpcode coprocessor two opcode (not implemented yet)
+func (cpu *CPU) copTwoOpcode(instruction Instruction)  {
+	log.Panicf("(Not implemented yet) unhandle GTE instruction: 0x%08x", instruction)
+}
+
 // executeSubInstr decode and execute sub instruction (special)
 func (cpu *CPU) executeSubInstr(instruction Instruction) {
 	if instruction.subFunction() > 0x3f {
@@ -227,6 +232,8 @@ const (
 	Overflow = 0xc
 	LoadAddressError = 0x4
 	StoreAddressError = 0x5
+	Break = 0x9
+	CoprocessorError = 0xb
 )
 
 // Exception Trigger an exception
