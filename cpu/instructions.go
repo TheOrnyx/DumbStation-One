@@ -279,16 +279,9 @@ func (cpu *CPU) subUnsigned(instr Instruction) {
 	cpu.SetReg(instr.destReg(), source-target)
 }
 
-// jump jump
-func (cpu *CPU) jump(instr Instruction) {
-	immediate := instr.jumpImmediate()
-
-	cpu.pc = (cpu.pc & 0xf0000000) | (immediate << 2)
-}
-
 // jumpAndLink jump and link by storing return address in $ra
 func (cpu *CPU) jumpAndLink(instr Instruction) {
-	returnAddr := cpu.pc
+	returnAddr := cpu.nextPC
 
 	cpu.SetReg(RegIndex(31), returnAddr)
 	cpu.jump(instr)
@@ -297,17 +290,17 @@ func (cpu *CPU) jumpAndLink(instr Instruction) {
 // jumpAndLinkReg jump and link by storing return address in register
 func (cpu *CPU) jumpAndLinkReg(instr Instruction) {
 	jumpLoc := cpu.GetReg(instr.sourceReg())
-	returnAddr := cpu.pc
+	returnAddr := cpu.nextPC
 
 	cpu.SetReg(instr.destReg(), returnAddr)
 
-	cpu.pc = jumpLoc
+	cpu.nextPC = jumpLoc
 }
 
 // jumpRegister jump to val in register
 func (cpu *CPU) jumpRegister(instr Instruction) {
 	sourceReg := cpu.GetReg(instr.sourceReg())
-	cpu.pc = sourceReg
+	cpu.nextPC = sourceReg
 }
 
 // branchNotEqual branch if not equal
@@ -376,7 +369,7 @@ func (cpu *CPU) branchVarious(instr Instruction) {
 	test = test ^ isBgez
 
 	if isLink {
-		returnAddr := cpu.pc
+		returnAddr := cpu.nextPC
 		// store pc in reg $ra
 		cpu.SetReg(RegIndex(32), returnAddr)
 	}
@@ -481,11 +474,26 @@ func (cpu *CPU) moveFromLO(instr Instruction)  {
 	cpu.SetReg(instr.destReg(), cpu.lo)
 }
 
+// moveToLO move to LO reg
+func (cpu *CPU) moveToLO(instr Instruction)  {
+	cpu.lo = cpu.GetReg(instr.sourceReg())
+}
+
 // moveFromHI move from hi into general purpose register
 //
 // TODO - like MFLO this should also stall but do this later
 func (cpu *CPU) moveFromHI(instr Instruction)  {
 	cpu.SetReg(instr.destReg(), cpu.hi)
+}
+
+// moveToHI move to HI reg
+func (cpu *CPU) moveToHI(instr Instruction)  {
+	cpu.hi = cpu.GetReg(instr.sourceReg())
+}
+
+// syscall system call
+func (cpu *CPU) syscall(instr Instruction)  {
+	cpu.Exception(SysCall)
 }
 
 /////////////////////////////////

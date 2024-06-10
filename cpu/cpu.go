@@ -10,6 +10,7 @@ import (
 // All registers are 32-bits wide (uint32)
 type CPU struct {
 	pc              uint32           // The program counter
+	nextPC          uint32           // the next value for the PC - used for simulating branch delay slot
 	regs            Registers        // the rest of the registers
 	outRegs         Registers        // second set of registers used to emulate load delay slot - this sucks
 	loadReg         LoadRegPair      // the pair to use for loading
@@ -18,7 +19,7 @@ type CPU struct {
 	nextInstruction Instruction      // the next instruction, used to simulate branch delay shot
 	hi              uint32           // HI register for division remainder and multiplication high result
 	lo              uint32           // LO register for division quotient and multiplication low result
-
+	currentPC uint32 // address of instruction currently being executed. used for setting EPC in exceptions
 }
 
 // NewCPU Create and return a new CPU that's been reset
@@ -32,7 +33,8 @@ func NewCPU(bus *memory.Bus) *CPU {
 
 // Reset reset the cpu to its initial state
 func (cpu *CPU) Reset() {
-	cpu.pc = 0xbfc00000           // reset to beginning of the BIOS
+	cpu.pc = 0xbfc00000 // reset to beginning of the BIOS
+	cpu.nextPC = cpu.pc + 4
 	cpu.regs = Registers{zero: 0} // TODO - probably reset to garbage but idc
 	cpu.outRegs = cpu.regs
 	cpu.loadReg = LoadRegPair{0, 0}
@@ -66,13 +68,20 @@ func (cpu *CPU) SetCopZeroReg(index RegIndex, val uint32) {
 
 // RunNextInstruction run the next instruction
 func (cpu *CPU) RunNextInstruction() {
-	instruction := cpu.nextInstruction
-	cpu.nextInstruction = Instruction(cpu.load32(cpu.pc))
-	cpu.pc += 4 // increment pc by 4 bytes
+	instruction := Instruction(cpu.load32(cpu.pc))
 
-	// set for the delay slot
+	// save address of current instruction
+	cpu.currentPC = cpu.pc
+
+	// increment next pc to point to next instruction
+	cpu.pc = cpu.nextPC
+	cpu.nextPC += 4
+
+	// execute pending load
 	cpu.SetReg(cpu.loadReg.target, cpu.loadReg.val)
-	cpu.loadReg = LoadRegPair{0, 0} // TODO - check this is not inefficient compared to setting vals
+
+	// reset load to target 0 for next instr
+	cpu.loadReg = LoadRegPair{0, 0}
 
 	cpu.decodeAndExecuteInstr(instruction)
 
@@ -161,10 +170,16 @@ func (cpu *CPU) executeSubInstr(instruction Instruction) {
 		cpu.jumpRegister(instruction)
 	case 0x09: // JALR
 		cpu.jumpAndLinkReg(instruction)
+	case 0x0c: // SYSCALL
+		cpu.syscall(instruction)
 	case 0x10: // MFHI
 		cpu.moveFromHI(instruction)
+	case 0x11: // MTHI
+		cpu.moveToHI(instruction)
 	case 0x12: // MFLO
 		cpu.moveFromLO(instruction)
+	case 0x13: // MTLO
+		cpu.moveToLO(instruction)
 	case 0x1a: // DIV
 		cpu.div(instruction)
 	case 0x1b: // DIVU
@@ -237,7 +252,49 @@ func (cpu *CPU) Store8(addr uint32, val uint8) {
 // other instructions
 func (cpu *CPU) branch(offset uint32) {
 	offset = offset << 2
-	cpu.pc += offset
+	cpu.nextPC += offset
 
-	cpu.pc -= 4 // have to compensate for the += 4 in the run next instr
+	cpu.nextPC -= 4 // have to compensate for the += 4 in the run next instr
+}
+
+// jump jump
+func (cpu *CPU) jump(instr Instruction) {
+	immediate := instr.jumpImmediate()
+
+	cpu.nextPC = (cpu.nextPC & 0xf0000000) | (immediate << 2)
+}
+
+// exception enums
+const (
+	SysCall = 0x8
+)
+
+// Exception Trigger an exception
+//
+// TODO - recheck this later
+func (cpu *CPU) Exception(cause int)  {
+	// exception handler address depends on 'BEV' bit:
+	sr := cpu.GetCopZeroReg(12)
+	var handler uint32 = 0x80000080
+	if sr & (1 << 22) != 0 {
+		handler = 0xbfc00180
+	}
+
+	// shift bits [5:0] of SR two places to left.  These bits are
+	// threee pairs of interrupt enable/ user mode bits that behave
+	// like a stack 3 entires deep. Entering an exception pushes a
+	// pair of zeroes by left shifting the stack which disabled
+	// interrutpts and puts the CU in kernel mode. The original third
+	// entry is discarded.
+	mode := sr & 0x3f
+	sr &= ^uint32(0x3f) // TODO - check
+	sr |= (mode << 2) & 0x3f
+
+	// write sr back
+	cpu.SetCopZeroReg(12, sr)
+
+	cpu.copZeroRegs.cause = uint32(cause) << 2
+	cpu.copZeroRegs.epc = cpu.currentPC
+	cpu.pc = handler
+	cpu.nextPC = cpu.pc + 4
 }

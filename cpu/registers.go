@@ -225,11 +225,11 @@ func (c *CopZeroRegisters) SetReg(index RegIndex, val uint32) string {
 		c.sr = val
 		return "SR"
 	case 13: // CAUSE
-		// c.cause = val
-		return "CAUSE (READ ONLY)"
+		c.cause = val
+		return "CAUSE"
 	case 14: // EPC
-		// c.epc = val
-		return "EPC (READ ONLY)"
+		c.epc = val
+		return "EPC"
 	case 15: // PRID
 		// c.prid = val
 		return "PRID (READ ONLY)"
