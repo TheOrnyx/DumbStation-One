@@ -24,14 +24,19 @@ func (b *Bus) Load32(addr uint32) (uint32, error) {
 		return 0xF, fmt.Errorf("Unaligned load32 address: 0x%x\n", addr)
 	}
 
-	maskedAddr := MaskRegion(addr)
+	absAddr := MaskRegion(addr)
 
-	if offset, contains := BIOS_RANGE.Contains(maskedAddr); contains {
+	if offset, contains := BIOS_RANGE.Contains(absAddr); contains {
 		return b.bios.load32(offset), nil
 	}
 
-	if offset, contains := RAM_RANGE.Contains(maskedAddr); contains {
+	if offset, contains := RAM_RANGE.Contains(absAddr); contains {
 		return b.ram.load32(offset), nil
+	}
+
+	if _, contains := IRQ_CONTROL.Contains(absAddr); contains {
+		log.Infof("(not implemented) IRQ control read at: absAddr:0x%08x", absAddr)
+		return 0, nil
 	}
 	
 	return 0xF, fmt.Errorf("Unknown load32 at address 0x%08x", addr)	
@@ -76,12 +81,12 @@ func (b *Bus) Store32(addr, val uint32) error {
 			if val != 0x1f000000 {
 				return fmt.Errorf("Bad expansion 1 base address: 0x%x", val)
 			}
-
+			
 		case 4: // expansion 2 base address
 			if val != 0x1f802000 {
 				return fmt.Errorf("Bad expansion 2 base address: 0x%x", val)
 			}
-
+			
 		default:
 			log.Info("Unhandled write to MEM_CONTROL register")
 		}
@@ -101,7 +106,12 @@ func (b *Bus) Store32(addr, val uint32) error {
 	if _, contains := CACHE_CONTROL.Contains(maskedAddr); contains {
 		log.Warnf("Cache access not implemented yet - addr 0x%08x didn't receive value 0x%08x", addr, val)
 		return nil
-	}	
+	}
+
+	if offset, contains := IRQ_CONTROL.Contains(maskedAddr); contains {
+		log.Infof("(Not implemented yet) IRQ control 0x%08x <- 0x%08x", offset, val)
+		return nil
+	}
 	
 	return fmt.Errorf("Haven't implemented store32 to address 0x%08x with val 0x%08x", addr, val)
 }
@@ -116,6 +126,11 @@ func (b *Bus) Store16(addr uint32, val uint16) error {
 
 	if offset, contains := SPU_RANGE.Contains(absAddr); contains {
 		log.Infof("Unhandled write to SPU register: offset:0x%08x, absAddr:0x%04x", offset, absAddr)
+		return nil
+	}
+
+	if offset, contains := TIMERS_RANGE.Contains(absAddr); contains {
+		log.Infof("Unhandled write to timer register at addr 0x%08x", offset)
 		return nil
 	}
 

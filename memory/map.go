@@ -16,6 +16,8 @@ var (
 	SPU_RANGE     = Range{start: 0x1f801c00, length: 640}
 	EXPANSION_1   = Range{start: 0x1f000000, length: 8192*1024} // TODO - check i have no idea
 	EXPANSION_2   = Range{start: 0x1f802000, length: 66}
+	IRQ_CONTROL   = Range{start: 0x1f801070, length: 8} // interrupr request
+	TIMERS_RANGE  = Range{start: 0x1f801100, length: 48} // TODO - check, idk the fucking memory map is confusing as shit
 )
 
 // Contains whether or not addr is inside range

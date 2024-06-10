@@ -16,6 +16,9 @@ type CPU struct {
 	copZeroRegs     CopZeroRegisters // Coprocessor zero's registers
 	bus             *memory.Bus      // the memory bus
 	nextInstruction Instruction      // the next instruction, used to simulate branch delay shot
+	hi              uint32           // HI register for division remainder and multiplication high result
+	lo              uint32           // LO register for division quotient and multiplication low result
+
 }
 
 // NewCPU Create and return a new CPU that's been reset
@@ -35,6 +38,8 @@ func (cpu *CPU) Reset() {
 	cpu.loadReg = LoadRegPair{0, 0}
 	cpu.copZeroRegs = CopZeroRegisters{}
 	cpu.nextInstruction = Instruction(0x0) // NOP
+	cpu.hi = 0xbeaf
+	cpu.lo = 0xfeab
 	log.Info("Reset CPU state")
 }
 
@@ -68,7 +73,7 @@ func (cpu *CPU) RunNextInstruction() {
 	// set for the delay slot
 	cpu.SetReg(cpu.loadReg.target, cpu.loadReg.val)
 	cpu.loadReg = LoadRegPair{0, 0} // TODO - check this is not inefficient compared to setting vals
-	
+
 	cpu.decodeAndExecuteInstr(instruction)
 
 	// set the regs to the outregs
@@ -82,6 +87,8 @@ func (cpu *CPU) decodeAndExecuteInstr(instruction Instruction) {
 	switch instruction.function() {
 	case 0x00: // SPECIAL
 		cpu.executeSubInstr(instruction)
+	case 0x01: // BcondZ
+		cpu.branchVarious(instruction)
 	case 0x02: // J
 		cpu.jump(instruction)
 	case 0x03: // JAL
@@ -90,8 +97,16 @@ func (cpu *CPU) decodeAndExecuteInstr(instruction Instruction) {
 		cpu.branchIfEqual(instruction)
 	case 0x05: // BNE
 		cpu.branchNotEqual(instruction)
+	case 0x06: // BLEZ
+		cpu.branchLessOrEqualZero(instruction)
+	case 0x07: // BGTZ
+		cpu.branchGreaterThanZero(instruction)
 	case 0x08: // ADDI
 		cpu.addImmediate(instruction)
+	case 0x0a: // SLTI
+		cpu.setIfLessThanImm(instruction)
+	case 0x0b: // SLTIU
+		cpu.setIfLessThanImmUnsigned(instruction)
 	case 0x0c: // ANDI
 		cpu.andImmediate(instruction)
 	case 0x10: // COP0
@@ -104,6 +119,8 @@ func (cpu *CPU) decodeAndExecuteInstr(instruction Instruction) {
 		cpu.loadByte(instruction)
 	case 0x23: // LW
 		cpu.loadWord(instruction)
+	case 0x24: // LBU
+		cpu.loadByteUnsigned(instruction)
 	case 0x28: // SB
 		cpu.storeByte(instruction)
 	case 0x29: // SH
@@ -136,18 +153,36 @@ func (cpu *CPU) executeSubInstr(instruction Instruction) {
 	switch instruction.subFunction() {
 	case 0x00: // SLL
 		cpu.shiftLeftLogical(instruction)
+	case 0x02: // SRL
+		cpu.shiftRightLogical(instruction)
+	case 0x03: // SRA
+		cpu.shiftRightArithmetic(instruction)
 	case 0x08: // JR
 		cpu.jumpRegister(instruction)
+	case 0x09: // JALR
+		cpu.jumpAndLinkReg(instruction)
+	case 0x10: // MFHI
+		cpu.moveFromHI(instruction)
+	case 0x12: // MFLO
+		cpu.moveFromLO(instruction)
+	case 0x1a: // DIV
+		cpu.div(instruction)
+	case 0x1b: // DIVU
+		cpu.divUnsigned(instruction)
 	case 0x20: // ADD
 		cpu.add(instruction)
 	case 0x21: // ADDU
 		cpu.addUnsigned(instruction)
+	case 0x23: // SUBU
+		cpu.subUnsigned(instruction)
 	case 0x24: // AND
 		cpu.and(instruction)
 	case 0x25: // OR
 		cpu.or(instruction)
+	case 0x2a: // SLT
+		cpu.setIfLessThan(instruction)
 	case 0x2b: // SLTU
-		cpu.setOnLessThanUnsigned(instruction)
+		cpu.setIfLessThanUnsigned(instruction)
 	default:
 		log.Panicf("Unknown sub instruction - 0x%08x, 0x%02x", instruction, instruction.subFunction())
 	}
@@ -183,7 +218,7 @@ func (cpu *CPU) Store32(addr, val uint32) {
 }
 
 // Store16 store given 16bit value into memory
-func (cpu *CPU) Store16(addr uint32, val uint16)  {
+func (cpu *CPU) Store16(addr uint32, val uint16) {
 	err := cpu.bus.Store16(addr, val)
 	if err != nil {
 		log.Panicf("Store16 Failed - %v", err)
@@ -191,7 +226,7 @@ func (cpu *CPU) Store16(addr uint32, val uint16)  {
 }
 
 // Store8 store 8-bit byte into memory
-func (cpu *CPU) Store8(addr uint32, val uint8)  {
+func (cpu *CPU) Store8(addr uint32, val uint8) {
 	err := cpu.bus.Store8(addr, val)
 	if err != nil {
 		log.Panicf("Store8 Failed - %v", err)

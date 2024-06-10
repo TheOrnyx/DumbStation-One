@@ -68,56 +68,56 @@ func (i Instruction) copOpcode() uint32 {
 /////////////////////////////////////
 
 // loadUpperImmediate Load upper immediate - loadUpperImmediate
-func (cpu *CPU) loadUpperImmediate(instr Instruction)  {
+func (cpu *CPU) loadUpperImmediate(instr Instruction) {
 	immediate := instr.immediate16()
 	targetReg := instr.targetReg()
 
-	cpu.SetReg(targetReg, immediate << 16)
+	cpu.SetReg(targetReg, immediate<<16)
 }
 
 // or bitwise or between two registers
-func (cpu *CPU) or(instr Instruction)  {
+func (cpu *CPU) or(instr Instruction) {
 	sourceReg := instr.sourceReg()
 	targetReg := instr.targetReg()
-	
+
 	val := cpu.GetReg(sourceReg) | cpu.GetReg(targetReg)
 	cpu.SetReg(instr.destReg(), val)
 }
 
 // orImmediate bitwise or immediate
-func (cpu *CPU) orImmediate(instr Instruction)  {
+func (cpu *CPU) orImmediate(instr Instruction) {
 	immediate := instr.immediate16()
 	sourceReg := instr.sourceReg()
 	val := cpu.GetReg(sourceReg) | immediate
-	
+
 	cpu.SetReg(instr.targetReg(), val)
 }
 
 // and bitwise and
-func (cpu *CPU) and(instr Instruction)  {
+func (cpu *CPU) and(instr Instruction) {
 	sourceReg := instr.sourceReg()
 	targetReg := instr.targetReg()
-	
+
 	val := cpu.GetReg(sourceReg) & cpu.GetReg(targetReg)
 	cpu.SetReg(instr.destReg(), val)
 }
 
 // andImmediate bitwise and immediate
-func (cpu *CPU) andImmediate(instr Instruction)  {
+func (cpu *CPU) andImmediate(instr Instruction) {
 	immediate := instr.immediate16()
 	sourceReg := instr.sourceReg()
 	val := cpu.GetReg(sourceReg) & immediate
-	
+
 	cpu.SetReg(instr.targetReg(), val)
 }
 
 // storeWord Store Word
-func (cpu *CPU) storeWord(instr Instruction)  {
-	if cpu.GetCopZeroReg(REG_SR) & 0x10000 != 0 {
+func (cpu *CPU) storeWord(instr Instruction) {
+	if cpu.GetCopZeroReg(REG_SR)&0x10000 != 0 {
 		log.Info("Ignoring storeWord while the cache is isolated")
 		return
 	}
-	
+
 	targetReg := instr.targetReg()
 	sourceReg := instr.sourceReg()
 
@@ -127,8 +127,8 @@ func (cpu *CPU) storeWord(instr Instruction)  {
 }
 
 // storeHalfWord store half word into memory
-func (cpu *CPU) storeHalfWord(instr Instruction)  {
-	if cpu.GetCopZeroReg(REG_SR) & 0x10000 != 0 {
+func (cpu *CPU) storeHalfWord(instr Instruction) {
+	if cpu.GetCopZeroReg(REG_SR)&0x10000 != 0 {
 		log.Info("Ignoring storeHalfWord while the cache is isolated")
 		return
 	}
@@ -137,13 +137,13 @@ func (cpu *CPU) storeHalfWord(instr Instruction)  {
 	targetReg := cpu.GetReg(instr.targetReg())
 	sourceReg := cpu.GetReg(instr.sourceReg())
 	addr := sourceReg + immediate
-	
+
 	cpu.Store16(addr, uint16(targetReg))
 }
 
 // storeByte store byte
-func (cpu *CPU) storeByte(instr Instruction)  {
-	if cpu.GetCopZeroReg(REG_SR) & 0x10000 != 0 {
+func (cpu *CPU) storeByte(instr Instruction) {
+	if cpu.GetCopZeroReg(REG_SR)&0x10000 != 0 {
 		log.Info("Ignoring storeByte while the cache is isolated")
 		return
 	}
@@ -152,13 +152,13 @@ func (cpu *CPU) storeByte(instr Instruction)  {
 	targetReg := cpu.GetReg(instr.targetReg())
 	sourceReg := cpu.GetReg(instr.sourceReg())
 	addr := sourceReg + immediate
-	
+
 	cpu.Store8(addr, uint8(targetReg))
 }
 
 // loadWord load word
-func (cpu *CPU) loadWord(instr Instruction)  {
-	if cpu.GetCopZeroReg(REG_SR) & 0x10000 != 0 {
+func (cpu *CPU) loadWord(instr Instruction) {
+	if cpu.GetCopZeroReg(REG_SR)&0x10000 != 0 {
 		log.Info("Ignoring loadWord while the cache is isolated")
 		return
 	}
@@ -173,7 +173,7 @@ func (cpu *CPU) loadWord(instr Instruction)  {
 }
 
 // loadByte load signed byte
-func (cpu *CPU) loadByte(instr Instruction)  {
+func (cpu *CPU) loadByte(instr Instruction) {
 	immediate := instr.immediate16Se()
 	targetReg := instr.targetReg()
 	sourceReg := cpu.GetReg(instr.sourceReg())
@@ -184,8 +184,21 @@ func (cpu *CPU) loadByte(instr Instruction)  {
 	cpu.loadReg = LoadRegPair{target: targetReg, val: uint32(val)}
 }
 
+// loadByteUnsigned load bytes unsigned (lb without sign extension,
+// high 2 bits of target are set to 0)
+func (cpu *CPU) loadByteUnsigned(instr Instruction) {
+	immediate := instr.immediate16Se()
+	targetReg := instr.targetReg()
+	sourceReg := cpu.GetReg(instr.sourceReg())
+
+	addr := sourceReg + immediate
+	val := cpu.Load8(addr)
+
+	cpu.loadReg = LoadRegPair{target: targetReg, val: uint32(val)}
+}
+
 // shiftLeftLogical Shift left logical
-func (cpu *CPU) shiftLeftLogical(instr Instruction)  {
+func (cpu *CPU) shiftLeftLogical(instr Instruction) {
 	immediate := instr.shiftImmediate()
 	targetReg := instr.targetReg()
 
@@ -193,10 +206,29 @@ func (cpu *CPU) shiftLeftLogical(instr Instruction)  {
 	cpu.SetReg(instr.destReg(), val)
 }
 
+// shiftRightLogical shift right logical
+func (cpu *CPU) shiftRightLogical(instr Instruction)  {
+	shift := instr.shiftImmediate()
+	target := cpu.GetReg(instr.targetReg())
+	val := target >> shift
+
+	cpu.SetReg(instr.destReg(), val)
+}
+
+// shiftRightArithmetic shift right arithmetic
+func (cpu *CPU) shiftRightArithmetic(instr Instruction) {
+	shift := instr.shiftImmediate()
+	target := int32(cpu.GetReg(instr.targetReg()))
+
+	val := target >> int32(shift) // TODO - check shift should be cast to int32
+
+	cpu.SetReg(instr.destReg(), uint32(val))
+}
+
 // addImmediateUnsigned add immediate unsigned
 //
 // This one apparently doesn't generate an exception on overflow while ADDI does?
-func (cpu *CPU) addImmediateUnsigned(instr Instruction)  {
+func (cpu *CPU) addImmediateUnsigned(instr Instruction) {
 	immediate := instr.immediate16Se()
 	sourceReg := instr.sourceReg()
 
@@ -205,7 +237,7 @@ func (cpu *CPU) addImmediateUnsigned(instr Instruction)  {
 }
 
 // addImmediate add immediate - generates exception when overflows
-func (cpu *CPU) addImmediate(instr Instruction)  {
+func (cpu *CPU) addImmediate(instr Instruction) {
 	immediate := instr.immediate16Se()
 	sourceReg := cpu.GetReg(instr.sourceReg())
 
@@ -218,7 +250,7 @@ func (cpu *CPU) addImmediate(instr Instruction)  {
 }
 
 // add add and generate exception on overflow
-func (cpu *CPU) add(instr Instruction)  {
+func (cpu *CPU) add(instr Instruction) {
 	sourceReg := cpu.GetReg(instr.sourceReg())
 	targetReg := cpu.GetReg(instr.targetReg())
 
@@ -231,7 +263,7 @@ func (cpu *CPU) add(instr Instruction)  {
 }
 
 // addUnsigned Add two unsigned registers together and store in target
-func (cpu *CPU) addUnsigned(instr Instruction)  {
+func (cpu *CPU) addUnsigned(instr Instruction) {
 	sourceReg := cpu.GetReg(instr.sourceReg())
 	targetReg := cpu.GetReg(instr.targetReg())
 	val := sourceReg + targetReg
@@ -239,29 +271,47 @@ func (cpu *CPU) addUnsigned(instr Instruction)  {
 	cpu.SetReg(instr.destReg(), val)
 }
 
+// subUnsigned subtract unsigned
+func (cpu *CPU) subUnsigned(instr Instruction) {
+	source := cpu.GetReg(instr.sourceReg())
+	target := cpu.GetReg(instr.targetReg())
+
+	cpu.SetReg(instr.destReg(), source-target)
+}
+
 // jump jump
-func (cpu *CPU) jump(instr Instruction)  {
+func (cpu *CPU) jump(instr Instruction) {
 	immediate := instr.jumpImmediate()
 
 	cpu.pc = (cpu.pc & 0xf0000000) | (immediate << 2)
 }
 
 // jumpAndLink jump and link by storing return address in $ra
-func (cpu *CPU) jumpAndLink(instr Instruction)  {
+func (cpu *CPU) jumpAndLink(instr Instruction) {
 	returnAddr := cpu.pc
 
 	cpu.SetReg(RegIndex(31), returnAddr)
 	cpu.jump(instr)
 }
 
+// jumpAndLinkReg jump and link by storing return address in register
+func (cpu *CPU) jumpAndLinkReg(instr Instruction) {
+	jumpLoc := cpu.GetReg(instr.sourceReg())
+	returnAddr := cpu.pc
+
+	cpu.SetReg(instr.destReg(), returnAddr)
+
+	cpu.pc = jumpLoc
+}
+
 // jumpRegister jump to val in register
-func (cpu *CPU) jumpRegister(instr Instruction)  {
+func (cpu *CPU) jumpRegister(instr Instruction) {
 	sourceReg := cpu.GetReg(instr.sourceReg())
 	cpu.pc = sourceReg
 }
 
 // branchNotEqual branch if not equal
-func (cpu *CPU) branchNotEqual(instr Instruction)  {
+func (cpu *CPU) branchNotEqual(instr Instruction) {
 	offset := instr.immediate16Se()
 	sourceReg := instr.sourceReg()
 	targetReg := instr.targetReg()
@@ -272,7 +322,7 @@ func (cpu *CPU) branchNotEqual(instr Instruction)  {
 }
 
 // branchIfEqual branch if equal
-func (cpu *CPU) branchIfEqual(instr Instruction)  {
+func (cpu *CPU) branchIfEqual(instr Instruction) {
 	offset := instr.immediate16Se()
 	sourceReg := instr.sourceReg()
 	targetReg := instr.targetReg()
@@ -282,8 +332,62 @@ func (cpu *CPU) branchIfEqual(instr Instruction)  {
 	}
 }
 
-// setOnLessThanUnsigned set the dest to 1 when source is less than target
-func (cpu *CPU) setOnLessThanUnsigned(instr Instruction)  {
+// branchGreaterThanZero branch if greater than zero (signed)
+func (cpu *CPU) branchGreaterThanZero(instr Instruction) {
+	immediate := instr.immediate16Se()
+	source := int32(cpu.GetReg(instr.sourceReg()))
+
+	if source > 0 {
+		cpu.branch(immediate)
+	}
+}
+
+// branchLessOrEqualZero branch if less than or equal to zero (signed)
+func (cpu *CPU) branchLessOrEqualZero(instr Instruction) {
+	immediate := instr.immediate16Se()
+	source := int32(cpu.GetReg(instr.sourceReg()))
+
+	if source <= 0 {
+		cpu.branch(immediate)
+	}
+}
+
+// branchVarious various branch instructions: BGEZ, BLTZ, BGEZAL and BLTZAL
+//
+// bits 16 and 20 used to figure out which to use
+func (cpu *CPU) branchVarious(instr Instruction) {
+	immediate := instr.immediate16Se()
+	sourceReg := instr.sourceReg()
+	var test uint32 = 0x00
+
+	inst := uint32(instr)
+
+	isBgez := (inst >> 16) & 1
+	isLink := (inst>>17)&0xf == 8
+
+	val := int32(cpu.GetReg(sourceReg))
+
+	if val < 0 {
+		test = 0x01
+	}
+
+	// if test is 'greater than or equal to zero' we need to negate
+	// comparison using a xor
+	test = test ^ isBgez
+
+	if isLink {
+		returnAddr := cpu.pc
+		// store pc in reg $ra
+		cpu.SetReg(RegIndex(32), returnAddr)
+	}
+
+	if test != 0 {
+		cpu.branch(immediate)
+	}
+}
+
+// setIfLessThanUnsigned set the dest to 1 when source is less than target
+func (cpu *CPU) setIfLessThanUnsigned(instr Instruction) {
 	sourceReg := cpu.GetReg(instr.sourceReg())
 	targetReg := cpu.GetReg(instr.targetReg())
 	var val uint32 = 0
@@ -295,12 +399,101 @@ func (cpu *CPU) setOnLessThanUnsigned(instr Instruction)  {
 	cpu.SetReg(instr.destReg(), val)
 }
 
+// setIfLessThanImm set if less than immediate (signed)
+func (cpu *CPU) setIfLessThanImm(instr Instruction) {
+	immediate := int32(instr.immediate16Se())
+	source := int32(cpu.GetReg(instr.sourceReg()))
+
+	val := source < immediate
+
+	cpu.SetReg(instr.targetReg(), utils.BoolToUint32(val))
+}
+
+// setIfLessThanImmUnsigned set if less than immediate unsigned
+func (cpu *CPU) setIfLessThanImmUnsigned(instr Instruction)  {
+	immediate := instr.immediate16Se()
+	source := cpu.GetReg(instr.sourceReg())
+
+	val := source < immediate
+
+	cpu.SetReg(instr.targetReg(), utils.BoolToUint32(val))
+}
+
+// setIfLessThan set on less than (signed)
+func (cpu *CPU) setIfLessThan(instr Instruction)  {
+	source := int32(cpu.GetReg(instr.sourceReg()))
+	target := int32(cpu.GetReg(instr.targetReg()))
+
+	val := source < target
+
+	cpu.SetReg(instr.destReg(), utils.BoolToUint32(val))
+}
+
+// div divide (signed)
+func (cpu *CPU) div(instr Instruction) {
+	sourceReg := instr.sourceReg()
+	targetReg := instr.targetReg()
+
+	numerator := int32(cpu.GetReg(sourceReg))
+	denominator := int32(cpu.GetReg(targetReg))
+
+	if denominator == 0 {
+		// divide by 0
+		cpu.hi = uint32(numerator)
+
+		if numerator >= 0 {
+			cpu.lo = 0xffffffff
+		} else {
+			cpu.lo = 1
+		}
+	} else if uint32(numerator) == 0x80000000 && denominator == -1 {
+		// result not representable in 32-bit signed int
+		cpu.hi = 0
+		cpu.lo = 0x80000000
+	} else {
+		cpu.hi = uint32(numerator % denominator)
+		cpu.lo = uint32(numerator / denominator)
+	}
+}
+
+// divUnsigned divide unsigned
+func (cpu *CPU) divUnsigned(instr Instruction)  {
+	sourceReg := instr.sourceReg()
+	targetReg := instr.targetReg()
+
+	numerator := cpu.GetReg(sourceReg)
+	denominator := cpu.GetReg(targetReg)
+
+	if denominator == 0 {
+		// divide by 0
+		cpu.hi = numerator
+		cpu.lo = 0xffffffff
+	} else {
+		cpu.hi = numerator % denominator
+		cpu.lo = numerator / denominator
+	}
+}
+
+// moveFromLO move from LO into general purpsoe register
+//
+// TODO - this should like stall if division isn't completed but implement later
+func (cpu *CPU) moveFromLO(instr Instruction)  {
+	cpu.SetReg(instr.destReg(), cpu.lo)
+}
+
+// moveFromHI move from hi into general purpose register
+//
+// TODO - like MFLO this should also stall but do this later
+func (cpu *CPU) moveFromHI(instr Instruction)  {
+	cpu.SetReg(instr.destReg(), cpu.hi)
+}
+
 /////////////////////////////////
 // Coprocessor Instructions ✨ //
 /////////////////////////////////
 
 // moveToCopZero move register contents to coprocessor zero
-func (cpu *CPU) moveToCopZero(instr Instruction)  {
+func (cpu *CPU) moveToCopZero(instr Instruction) {
 	cpuReg := instr.targetReg()
 	copReg := instr.destReg()
 
@@ -309,7 +502,7 @@ func (cpu *CPU) moveToCopZero(instr Instruction)  {
 }
 
 // moveFromCopZero move from Coprocessor 0
-func (cpu *CPU) moveFromCopZero(instr Instruction)  {
+func (cpu *CPU) moveFromCopZero(instr Instruction) {
 	cpuReg := instr.targetReg()
 	copReg := instr.destReg()
 

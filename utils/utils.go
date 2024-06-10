@@ -1,7 +1,9 @@
 // utility functions for use in the other parts of the emulator
 package utils
 
-import "math"
+import (
+	"math"
+)
 
 // BytesToUint32 Convert 4 bytes to one little endian uint32 value
 func BytesToUint32(b0, b1, b2, b3 byte) uint32 {
@@ -41,4 +43,25 @@ func AddSigned16(val1, val2 uint32) (result uint32, overflowed bool) {
 	// }
 	
 	// return uint32(res), false
+}
+
+// // BoolToInt[T constrains.Integer] convert conditional to 0 or 1 of type
+// func BoolToInt[T constraints.Integer](cond bool) T {
+// 	res := 0
+
+// 	if cond {
+// 		res = 1
+// 	}
+	
+// 	return T(res)
+// }
+
+// BoolToUint32 convert cond to 0 or 1 and return
+func BoolToUint32(cond bool) uint32 {
+	var val uint32 = 0
+	if cond {
+		val = 1
+	}
+
+	return val
 }

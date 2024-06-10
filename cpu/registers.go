@@ -46,8 +46,6 @@ type Registers struct {
 	sp   uint32 // R29  | sp       | Stack Pointer
 	fp   uint32 // R30  | fp(s8)   | Frame pointer, or 9th static var, must be saved
 	ra   uint32 // R31  | ra       | Return address (used so by JAL,BLTZAL,BGEZAL opcodes)
-	hi   uint32 // -    | hi       | Multiply/divide result (subroutine may change)
-	lo   uint32 // -    | lo       | Multiply/divide result (subroutine may change)
 }
 
 // GetReg get register from given value
