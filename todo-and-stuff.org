@@ -66,3 +66,5 @@ to be allocated and what not.
   currentPC etc just so i don't have to copy code a bunch
 + Maybe reduce some of the like logging feedback cuz it'll slow down shit
 + Redo some of my log debug things to inclidue the size jsut cuz it's easier
++ Make some of the like "not implemented yet" text more consistent as it's kinda
+  random and all over the place atm
