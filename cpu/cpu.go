@@ -107,7 +107,7 @@ func (cpu *CPU) RunNextInstruction() {
 // TODO - switch from binary to hex cuz nicer
 func (cpu *CPU) decodeAndExecuteInstr(instruction Instruction) {
 	if instruction.function() > 0x3f {
-		UnknownOpcode.runFunc(cpu, instruction)
+		IllegalOpcode.runFunc(cpu, instruction)
 	}
 	
 	Opcodes[instruction.function()].runFunc(cpu, instruction)
@@ -135,7 +135,7 @@ func (cpu *CPU) copTwoOpcode(instruction Instruction)  {
 // executeSubInstr decode and execute sub instruction (special)
 func (cpu *CPU) executeSubInstr(instruction Instruction) {
 	if instruction.subFunction() > 0x3f {
-		UnknownSubOpcode.runFunc(cpu, instruction)
+		IllegalSubOpcode.runFunc(cpu, instruction)
 	}
 
 	SubOpcodes[instruction.subFunction()].runFunc(cpu, instruction)
@@ -233,6 +233,7 @@ const (
 	LoadAddressError = 0x4
 	StoreAddressError = 0x5
 	Break = 0x9
+	IllegalInstruction = 0xa
 	CoprocessorError = 0xb
 )
 
