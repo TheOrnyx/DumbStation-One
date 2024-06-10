@@ -50,3 +50,19 @@ to be allocated and what not.
   "current_instruction" field or smth
 + Check whether or not it's better to return an error for like store32 or just
   to panic, cuz panic lets me see the stacktrace
++ Maybe switch around my instructions to like be instruction methods that take
+  in a cpu or smth just cuz
++ Switch the instruction methods like targetReg to take the cpu and just return
+  the REG value
++ Maybe switch the instruction chooser from a switch to a like array again or
+  smth idk
++ Yeah definitely switch to an overall instruction type with a function pointer
+  etc like in gameboy emulator
++ Make the like loads and stores be generic
++ Maybe shorten the names of some of my instruction methods
++ I mostly did it because i was following along but fix the god awful nextPC
+  currentPC etc etc, it's gross
++ Make a function where the jump and branch instructions should set shit like
+  currentPC etc just so i don't have to copy code a bunch
++ Maybe reduce some of the like logging feedback cuz it'll slow down shit
++ Redo some of my log debug things to inclidue the size jsut cuz it's easier
