@@ -35,17 +35,17 @@ func (b *Bus) Load32(addr uint32) (uint32, error) {
 	}
 
 	if _, contains := IRQ_CONTROL.Contains(absAddr); contains {
-		log.Infof("(not implemented) IRQ control read at: absAddr:0x%08x", absAddr)
+		log.Infof("(Not implemented yet) IRQ control 32bit read at: 0x%08x", absAddr)
 		return 0, nil
 	}
 
 	if _, contains := DMA_RANGE.Contains(absAddr); contains {
-		log.Infof("(not implemented) DMA read at: 0x%08x", absAddr)
+		log.Infof("(Not implemented yet) DMA 32bit read at: 0x%08x", absAddr)
 		return 0, nil
 	}
 
 	if _, contains := GPU_RANGE.Contains(absAddr); contains {
-		log.Infof("(Not implemented yet) GPU read at absAddr:0x%08x", absAddr)
+		log.Infof("(Not implemented yet) GPU 32bit read at: 0x%08x", absAddr)
 		return 0, nil
 	}
 	
@@ -57,7 +57,7 @@ func (b *Bus) Load16(addr uint32) (uint16, error) {
 	absAddr := MaskRegion(addr)
 
 	if _, contains := SPU_RANGE.Contains(absAddr); contains {
-		log.Infof("(Not implemented yet) SPU register read at 0x%08x", absAddr)
+		log.Infof("(Not implemented yet) SPU register 16bit read at: 0x%08x", absAddr)
 		return 0, nil
 	}
 
@@ -66,7 +66,7 @@ func (b *Bus) Load16(addr uint32) (uint16, error) {
 	}
 
 	if _, contains := IRQ_CONTROL.Contains(absAddr); contains {
-		log.Infof("(Not implemented yet) IRQ control read at 0x%08x", absAddr)
+		log.Infof("(Not implemented yet) IRQ control 16bit read at: 0x%08x", absAddr)
 		return 0, nil
 	}
 
@@ -88,7 +88,7 @@ func (b *Bus) Load8(addr uint32) (uint8, error) {
 	if _, contains := EXPANSION_1.Contains(absAddr); contains {
 		// not implemented
 		// TODO - i am so confused here, figure it out lmao
-		log.Infof("Expansion 1 not implemented yet at: absAddr:0x%08x addr:0x%08x", absAddr, addr)
+		log.Infof("(Not implemented yet) Expansion 1 8bit read at: absAddr:0x%08x addr:0x%08x", absAddr, addr)
 		return 0xff, nil
 	}
 	
@@ -135,22 +135,27 @@ func (b *Bus) Store32(addr, val uint32) error {
 	}
 
 	if _, contains := CACHE_CONTROL.Contains(absAddr); contains {
-		log.Warnf("Cache access not implemented yet - addr 0x%08x didn't receive value 0x%08x", addr, val)
+		log.Infof("(Not implemented yet) Cache 32bit write 0x%08x to 0x%08x", val, absAddr)
 		return nil
 	}
 
-	if offset, contains := IRQ_CONTROL.Contains(absAddr); contains {
-		log.Infof("(Not implemented yet) IRQ control 0x%08x <- 0x%08x", offset, val)
+	if _, contains := IRQ_CONTROL.Contains(absAddr); contains {
+		log.Infof("(Not implemented yet) IRQ Control 32bit write 0x%08x to 0x%08x", val, absAddr)
 		return nil
 	}
 
 	if _, contains := DMA_RANGE.Contains(absAddr); contains {
-		log.Infof("(Not implemented yet) DMA write: addr:0x%08x, val:0x%08x", absAddr, val)
+		log.Infof("(Not implemented yet) DMA 32bit write 0x%08x to 0x%08x", val, absAddr)
 		return nil
 	}
 
 	if _, contains := GPU_RANGE.Contains(absAddr); contains {
-		log.Infof("(Not implemented yet) GPU write 0x%08x to 0x%08x", val, absAddr)
+		log.Infof("(Not implemented yet) GPU 32bit write 0x%08x to 0x%08x", val, absAddr)
+		return nil
+	}
+
+	if _, contains := TIMERS_RANGE.Contains(absAddr); contains {
+		log.Infof("(Not implemented yet) TIMERS 32bit write 0x%08x to 0x%08x", val, absAddr)
 		return nil
 	}
 	
@@ -166,12 +171,12 @@ func (b *Bus) Store16(addr uint32, val uint16) error {
 	absAddr := MaskRegion(addr)
 
 	if _, contains := SPU_RANGE.Contains(absAddr); contains {
-		log.Infof("Unhandled write to SPU register at absAddr:0x%04x", absAddr)
+		log.Infof("(Not implemented yet) SPU register 16bit write 0x%04x to 0x%08x", val, absAddr)
 		return nil
 	}
 
-	if offset, contains := TIMERS_RANGE.Contains(absAddr); contains {
-		log.Infof("Unhandled write to timer register at addr 0x%08x", offset)
+	if _, contains := TIMERS_RANGE.Contains(absAddr); contains {
+		log.Infof("(Not implemented yet) TIMERS register 16bit write 0x%04x to 0x%08x", val, absAddr)
 		return nil
 	}
 
@@ -199,7 +204,7 @@ func (b *Bus) Store8(addr uint32, val uint8) error {
 	}
 
 	if offset, contains := EXPANSION_2.Contains(absAddr); contains {
-		log.Infof("Unhandled write to expansion 2 register: offset:0x%08x, absAddr:0x%02x", offset, absAddr)
+		log.Infof("(Not implemented yet) EXPANSION_2 8bit write 0x%02x to offset:0x%08x, absAddr:0x%02x", val, offset, absAddr)
 		return nil
 	}
 	
