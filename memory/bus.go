@@ -138,6 +138,11 @@ func (b *Bus) Load32(addr uint32) (uint32, error) {
 		}
 	}
 
+	if _, contains := TIMERS_RANGE.Contains(absAddr); contains {
+		log.Infof("(Not implemented yet) TIMERS 32bit read at 0x%08x", absAddr)
+		return 0, nil
+	}
+
 	return 0xF, fmt.Errorf("Unknown load32 at address 0x%08x", addr)
 }
 
@@ -311,10 +316,13 @@ func (b *Bus) doDMA(port Port)  {
 	// Don't care about splitting stuff up, do everything in one pass
 	switch channel.syncMode {
 	case linkedListMode: // not implemented
-		log.Panic("(Not implemented yet) Linked list DMA mode not supported")
+		// log.Panic("(Not implemented yet) Linked list DMA mode not supported")
+		b.doDMALinkedList(port)
 	default:
 		b.doDMABlock(port)
 	}
+
+	// channel.Done()
 }
 
 // doDMABlock do dma block transfer
@@ -336,7 +344,12 @@ func (b *Bus) doDMABlock(port Port)  {
 
 		switch channel.transferDir {
 		case dirFromRam:
-			log.Panicf("Unhandled DMA direction")
+			srcWord := b.ram.load32(currentAddr)
+			if port == PortGpu {
+				log.Infof("GPU data 0x%08x", srcWord)
+			} else {
+				log.Panicf("Unhandled DMA destination port %v", port)
+			}
 
 		case dirToRam:
 			srcWord := b.getDMASrcWord(port, addr, remainingSize)
@@ -361,7 +374,7 @@ func (b *Bus) getDMASrcWord(port Port, addr, remainingSize uint32) uint32 {
 		if remainingSize == 1 {
 			srcWord = 0xffffff
 		} else {
-			srcWord = (addr + 4) & 0x1fffff
+			srcWord = (addr - 4) & 0x1fffff
 		}
 
 	default:
@@ -369,4 +382,47 @@ func (b *Bus) getDMASrcWord(port Port, addr, remainingSize uint32) uint32 {
 	}
 
 	return srcWord
+}
+
+// doDMALinkedList do dma transfer for linked list sync mode
+func (b *Bus) doDMALinkedList(port Port)  {
+	channel := b.dma.GetChannelRef(port)
+
+	addr := channel.base & 0x1ffffc
+
+	if channel.transferDir == dirToRam {
+		log.Panic("Invalid DMA direction for linked list mode")
+	}
+
+	// apparently DMA with linkedlist only supports the gpu
+	if port != PortGpu {
+		log.Panicf("Attempted linkedList DMA on port  %v", port)
+	}
+
+	for  {
+		// in linked lsit mode each entry starts with a 'header'
+		// word. The high byte of this contains the number of words in
+		// the 'packet' (not counting the header word)
+
+		header := b.ram.load32(addr)
+		remainingSize := header >> 24
+
+		for remainingSize > 0 {
+			addr = (addr + 4) & 0x1ffffc
+
+			command := b.ram.load32(addr)
+
+			log.Infof("GPU command - 0x%08x", command)
+
+			remainingSize -= 1
+		}
+
+		if header & 0x800000 != 0 {
+			break
+		}
+
+		addr = header & 0x1ffffc
+	}
+
+	channel.Done()
 }
