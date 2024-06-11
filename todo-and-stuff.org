@@ -54,10 +54,6 @@ to be allocated and what not.
   in a cpu or smth just cuz
 + Switch the instruction methods like targetReg to take the cpu and just return
   the REG value
-+ Maybe switch the instruction chooser from a switch to a like array again or
-  smth idk
-+ Yeah definitely switch to an overall instruction type with a function pointer
-  etc like in gameboy emulator
 + Make the like loads and stores be generic
 + Maybe shorten the names of some of my instruction methods
 + I mostly did it because i was following along but fix the god awful nextPC
@@ -68,3 +64,7 @@ to be allocated and what not.
 + Redo some of my log debug things to inclidue the size jsut cuz it's easier
 + Make some of the like "not implemented yet" text more consistent as it's kinda
   random and all over the place atm
++ Some of the stuff like GPUSTAT could just be a uint32 value, it'd be more
+  annoying but atm ther's a lot of bitwise shit going on which might slow down
+  the program
++ Maybe make one big range for the I/O and split it off idk

@@ -50,3 +50,21 @@ sucks they aren't nicely there and shit.
 But yeah, i see a lot of refactoring in my future, probs gonna revamp the
 instruction system so it's a massive array like last time lmao
 
+* Day Four <2024-06-11 Tue>
+:LOGBOOK:
+CLOCK: [2024-06-11 Tue 10:34]--[2024-06-11 Tue 17:54] =>  7:20
+:END:
+
+Today was certainly a day. Finished off the CPU (for now) and got all the
+instructions implemented etc. I'll need to go back to it later but for now it
+works.
+
+But yeah, onto the GPU and god damn do i hate that documentation, why is
+everything so confusing lmao. But yeah hopefully we should be getting some shit
+displaying soon.
+Also I've started deviating from the guide a bit as it's got some weird
+confusing stuff that differs from what the docs say
+
+Short update today but i'm too tired and it wasn't really that interesting.
+Oh yeah I also like changed around the CPU instruction system to use an array
+and stuff yesterday if that counts.
