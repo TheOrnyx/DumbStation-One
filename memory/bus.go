@@ -28,7 +28,7 @@ func (b *Bus) ReadDMAReg(offset uint32) uint32 {
 	case 0,1,2,3,4,5,6: // TODO - this is gross, kill later cbf rn
 		channel := b.dma.GetChannelRef(PortFromIndex(major))
 		switch minor {
-		case 0: // TODO - check this is base
+		case 0: // base
 			return channel.base
 		case 4: // Block control register
 			return channel.BlockControl()
@@ -57,13 +57,16 @@ func (b *Bus) ReadDMAReg(offset uint32) uint32 {
 func (b *Bus) SetDMAReg(offset, val uint32) {
 	major := (offset & 0x70) >> 4
 	minor := offset & 0xf
+	var activePort Port
+	portFound := false
 
 	switch major {
 	// per channel registers
 	case 0,1,2,3,4,5,6: // TODO - this is gross, kill later cbf rn
-		channel := b.dma.GetChannelRef(PortFromIndex(major))
+		port := PortFromIndex(major)
+		channel := b.dma.GetChannelRef(port)
 		switch minor {
-		case 0: // TODO - check this is base
+		case 0: // base
 			channel.SetBase(val)
 		case 4: // block control
 			channel.SetBlockControl(val)
@@ -71,6 +74,11 @@ func (b *Bus) SetDMAReg(offset, val uint32) {
 			channel.SetControl(val)
 		default:
 			log.Panicf("Unhandled DMA write: 0x%08x into 0x%08x, minor:0x%04x", val, offset, minor)
+		}
+
+		if channel.IsActive() {
+			activePort = port
+			portFound = true
 		}
 
 	case 7: // Common DMA registers
@@ -85,6 +93,10 @@ func (b *Bus) SetDMAReg(offset, val uint32) {
 
 	default:
 		log.Panicf("Unhandled DMA write: 0x%08x into 0x%08x", val, offset)
+	}
+
+	if portFound {
+		b.doDMA(activePort)
 	}
 }
 
@@ -117,8 +129,10 @@ func (b *Bus) Load32(addr uint32) (uint32, error) {
 	if offset, contains := GPU_RANGE.Contains(absAddr); contains {
 		log.Infof("(Not fully implemented yet) GPU 32bit read at: 0x%08x", absAddr)
 		switch offset {
-		case 4: // gpustat set bit 28 so gpu is ready to receive DMA blocks
-			return 0x10000000, nil
+		case 4: // gpustat
+			// set bit 26, 27 and 28 to signal that gpu is ready for
+			// DMA and CPU access
+			return 0x1c000000, nil
 		default:
 			return 0, nil
 		}
@@ -283,4 +297,76 @@ func (b *Bus) Store8(addr uint32, val uint8) error {
 	}
 
 	return fmt.Errorf("Haven't implemented store8 into address 0x%08x with val 0x%02x", addr, val)
+}
+
+
+//////////////////////////////////
+// Perform DMA Transfer methods //
+//////////////////////////////////
+
+// doDMA execute a DMA transfer to a port
+func (b *Bus) doDMA(port Port)  {
+	channel := b.dma.GetChannelRef(port)
+
+	// Don't care about splitting stuff up, do everything in one pass
+	switch channel.syncMode {
+	case linkedListMode: // not implemented
+		log.Panic("(Not implemented yet) Linked list DMA mode not supported")
+	default:
+		b.doDMABlock(port)
+	}
+}
+
+// doDMABlock do dma block transfer
+func (b *Bus) doDMABlock(port Port)  {
+	channel := b.dma.GetChannelRef(port)
+	increment := channel.Step()
+
+	addr := channel.base
+
+	var remainingSize uint32 // transfer size in words
+	if size, notLinked := channel.TransferSize(); notLinked {
+		remainingSize = size
+	} else { // this shouldn't happen
+		log.Panic("Couldn't figure out DMA block transfer size")
+	}
+
+	for remainingSize > 0 {
+		currentAddr := addr & 0x1ffffc
+
+		switch channel.transferDir {
+		case dirFromRam:
+			log.Panicf("Unhandled DMA direction")
+
+		case dirToRam:
+			srcWord := b.getDMASrcWord(port, addr, remainingSize)
+
+			b.ram.store32(currentAddr, srcWord)
+		}
+
+		addr = addr + uint32(increment)
+		remainingSize -= 1
+	}
+
+	channel.Done()
+}
+
+// getDMASrcWord get the source word for DMA transfer at that point
+// This is a seperate method cuz I didn't really wanna have like 3
+// more switch statements in doDMABlock
+func (b *Bus) getDMASrcWord(port Port, addr, remainingSize uint32) uint32 {
+	var srcWord uint32
+	switch port {
+	case PortOtc: // clear ordering table
+		if remainingSize == 1 {
+			srcWord = 0xffffff
+		} else {
+			srcWord = (addr + 4) & 0x1fffff
+		}
+
+	default:
+		log.Panicf("Unhandled DMA source port: %v", port)
+	}
+
+	return srcWord
 }

@@ -37,13 +37,20 @@ const (
 // PortFromIndex return a port based on the given index
 func PortFromIndex(index uint32) Port {
 	switch index {
-	case 0: return PortMdecIn
-	case 1: return PortMdecOut
-	case 2: return PortGpu
-	case 3: return PortCdRom
-	case 4: return PortSpu
-	case 5: return PortPio
-	case 6: return PortOtc
+	case 0:
+		return PortMdecIn
+	case 1:
+		return PortMdecOut
+	case 2:
+		return PortGpu
+	case 3:
+		return PortCdRom
+	case 4:
+		return PortSpu
+	case 5:
+		return PortPio
+	case 6:
+		return PortOtc
 	default:
 		log.Panicf("Invalid port index: %v", index)
 	}
@@ -154,7 +161,7 @@ type ChannelControl struct {
 	base uint32
 
 	// Block stuff
-	blockSize uint16 // size of a block in words
+	blockSize  uint16 // size of a block in words
 	blockCount uint16 // block count, used only when 'syncMode' is 'sliceMode' (guide says request mode)
 }
 
@@ -164,6 +171,14 @@ const (
 	sliceMode      = 1
 	linkedListMode = 2
 	reservedMode   = 3
+	manualMode     = 0 // used in guide
+	requestMode    = 1 // used in guide
+)
+
+// direction constants
+const (
+	dirToRam = 0
+	dirFromRam = 1
 )
 
 // newChannelControl create and return a new channelControl object
@@ -227,7 +242,7 @@ func (c *ChannelControl) SetControl(val uint32) {
 
 // SetBase set channel base, only bits [0:23] are significant so only
 // 16mb are addressable by the DMA
-func (c *ChannelControl) SetBase(val uint32)  {
+func (c *ChannelControl) SetBase(val uint32) {
 	c.base = val & 0xffffff
 }
 
@@ -240,7 +255,51 @@ func (c *ChannelControl) BlockControl() uint32 {
 }
 
 // SetBlockControl set the value of the block control register
-func (c *ChannelControl) SetBlockControl(val uint32)  {
+func (c *ChannelControl) SetBlockControl(val uint32) {
 	c.blockSize = uint16(val)
 	c.blockCount = uint16(val >> 16)
+}
+
+// IsActive return true if the channel has been started
+func (c *ChannelControl) IsActive() bool {
+	trigger := true
+	if c.syncMode == manualMode {
+		trigger = c.forceStart
+	}
+
+	return c.enabled && trigger
+}
+
+// Step return +4 or -4 based on the stepIncrement value
+func (c *ChannelControl) Step() int {
+	if c.stepIncrement == 0 {
+		return 4
+	}
+
+	return -4
+}
+
+// TransferSize return the transfer size and false if not linkedlist
+// mode or true if in linkedlist mode
+func (c *ChannelControl) TransferSize() (size uint32, notLinked bool) {
+	bs := uint32(c.blockSize)
+	bc := uint32(c.blockCount)
+
+	switch c.syncMode {
+	case manualMode:
+		return bs, true
+	case requestMode:
+		return bc*bs, true
+	case linkedListMode:
+		return 0, false
+	}
+
+	log.Panicf("Unknown sync mode %v", c.syncMode)
+	return 0, false
+}
+
+// Done set channel status to completed state
+func (c *ChannelControl) Done()  {
+	c.enabled = false
+	c.forceStart = false
 }
