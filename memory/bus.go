@@ -3,6 +3,7 @@ package memory
 import (
 	"fmt"
 
+	"github.com/TheOrnyx/psx-go/gpu"
 	"github.com/TheOrnyx/psx-go/log"
 )
 
@@ -11,11 +12,12 @@ type Bus struct {
 	bios *Bios
 	ram  Ram
 	dma  Dma // the DMA registers
+	gpu gpu.Gpu
 }
 
 // NewBus create and return a new bus object
 func NewBus(bios *Bios) *Bus {
-	return &Bus{bios: bios, ram: NewRam(), dma: NewDMA()}
+	return &Bus{bios: bios, ram: NewRam(), dma: NewDMA(), gpu: gpu.NewGPU()}
 }
 
 // ReadDMAReg read the dma register
@@ -243,9 +245,14 @@ func (b *Bus) Store32(addr, val uint32) error {
 		return nil
 	}
 
-	if _, contains := GPU_RANGE.Contains(absAddr); contains {
-		log.Infof("(Not implemented yet) GPU 32bit write 0x%08x to 0x%08x", val, absAddr)
-		return nil
+	if offset, contains := GPU_RANGE.Contains(absAddr); contains {
+		switch offset {
+		case 0:
+			b.gpu.GP0(val)
+			return nil
+		default:
+			return fmt.Errorf("Unhandled GPU 32bit write 0x%08x to 0x%08x", val, absAddr)
+		}
 	}
 
 	if _, contains := TIMERS_RANGE.Contains(absAddr); contains {

@@ -1,5 +1,7 @@
 package gpu
 
+import "github.com/TheOrnyx/psx-go/log"
+
 // NOTE - i kinda just made this it's own file cuz I can't be bothered
 // having half of my other files be filled up with a bunch of consts
 // and shit (go please add enums )
@@ -12,6 +14,22 @@ const (
 	T8Bit  TextureDepth = 1
 	T15Bit TextureDepth = 2
 )
+
+// texDepthFromU32 get texturedepth value from uint32
+func texDepthFromU32(val uint32) TextureDepth {
+	switch val {
+	case 0:
+		return T4Bit
+	case 1:
+		return T8Bit
+	case 2:
+		return T15Bit
+	default:
+		log.Panicf("Failed to decode textureDepth from uint32, val:%v", val)
+	}
+	
+	return 0 // shouldn't happen
+}
 
 type DisplayDepth uint8
 
