@@ -9,12 +9,75 @@ import (
 // the memory bus
 type Bus struct {
 	bios *Bios
-	ram Ram
+	ram  Ram
+	dma  Dma // the DMA registers
 }
 
 // NewBus create and return a new bus object
 func NewBus(bios *Bios) *Bus {
-	return &Bus{bios: bios, ram: NewRam()}
+	return &Bus{bios: bios, ram: NewRam(), dma: NewDMA()}
+}
+
+// ReadDMAReg read the dma register
+func (b *Bus) ReadDMAReg(offset uint32) uint32 {
+	major := (offset & 0x70) >> 4
+	minor := offset & 0xf
+
+	switch major {
+	// per channel registers
+	case 0,1,2,3,4,5,6: // TODO - this is gross, kill later cbf rn
+		channel := b.dma.GetChannelRef(PortFromIndex(major))
+		switch minor {
+		case 8:
+			return channel.Control()
+		default:
+			log.Panicf("unhandled DMA read at: 0x%08x", offset)
+		}
+
+	case 7: // Common DMA registers
+		switch minor {
+		case 0:
+			return b.dma.Control()
+		case 4:
+			return b.dma.Interrupt()
+		default:
+			log.Panicf("unhandled DMA read at: 0x%08x", offset)
+		}
+	}
+
+	log.Panicf("unhandled DMA read at: 0x%08x", offset)
+	return 0x00 // shouldn't be reached
+}
+
+// SetDMAReg DMA register write
+func (b *Bus) SetDMAReg(offset, val uint32) {
+	major := (offset & 0x70) >> 4
+	minor := offset & 0xf
+
+	switch major {
+	// per channel registers
+	case 0,1,2,3,4,5,6: // TODO - this is gross, kill later cbf rn
+		channel := b.dma.GetChannelRef(PortFromIndex(major))
+		switch minor {
+		case 8:
+			channel.SetControl(val)
+		default:
+			log.Panicf("Unhandled DMA write: 0x%08x into 0x%08x", val, offset)
+		}
+
+	case 7: // Common DMA registers
+		switch minor {
+		case 0:
+			b.dma.SetControl(val)
+		case 4:
+			b.dma.SetInterrupt(val)
+		default:
+			log.Panicf("Unhandled DMA write: 0x%08x into 0x%08x", val, offset)
+		}
+
+	default:
+		log.Panicf("Unhandled DMA write: 0x%08x into 0x%08x", val, offset)
+	}
 }
 
 // Load32 load and return the value at addr on the bus
@@ -39,9 +102,8 @@ func (b *Bus) Load32(addr uint32) (uint32, error) {
 		return 0, nil
 	}
 
-	if _, contains := DMA_RANGE.Contains(absAddr); contains {
-		log.Infof("(Not implemented yet) DMA 32bit read at: 0x%08x", absAddr)
-		return 0, nil
+	if offset, contains := DMA_RANGE.Contains(absAddr); contains {
+		return b.ReadDMAReg(offset), nil
 	}
 
 	if offset, contains := GPU_RANGE.Contains(absAddr); contains {
@@ -53,8 +115,8 @@ func (b *Bus) Load32(addr uint32) (uint32, error) {
 			return 0, nil
 		}
 	}
-	
-	return 0xF, fmt.Errorf("Unknown load32 at address 0x%08x", addr)	
+
+	return 0xF, fmt.Errorf("Unknown load32 at address 0x%08x", addr)
 }
 
 // Load16 load 16-bit halfword at addr
@@ -96,7 +158,7 @@ func (b *Bus) Load8(addr uint32) (uint8, error) {
 		log.Infof("(Not implemented yet) Expansion 1 8bit read at: absAddr:0x%08x addr:0x%08x", absAddr, addr)
 		return 0xff, nil
 	}
-	
+
 	return 0xF, fmt.Errorf("Unkown Load8 at address 0x%08x", absAddr)
 }
 
@@ -117,12 +179,12 @@ func (b *Bus) Store32(addr, val uint32) error {
 			if val != 0x1f000000 {
 				return fmt.Errorf("Bad expansion 1 base address: 0x%x", val)
 			}
-			
+
 		case 4: // expansion 2 base address
 			if val != 0x1f802000 {
 				return fmt.Errorf("Bad expansion 2 base address: 0x%x", val)
 			}
-			
+
 		default:
 			log.Info("Unhandled write to MEM_CONTROL register")
 		}
@@ -149,8 +211,8 @@ func (b *Bus) Store32(addr, val uint32) error {
 		return nil
 	}
 
-	if _, contains := DMA_RANGE.Contains(absAddr); contains {
-		log.Infof("(Not implemented yet) DMA 32bit write 0x%08x to 0x%08x", val, absAddr)
+	if offset, contains := DMA_RANGE.Contains(absAddr); contains {
+		b.SetDMAReg(offset, val)
 		return nil
 	}
 
@@ -163,7 +225,7 @@ func (b *Bus) Store32(addr, val uint32) error {
 		log.Infof("(Not implemented yet) TIMERS 32bit write 0x%08x to 0x%08x", val, absAddr)
 		return nil
 	}
-	
+
 	return fmt.Errorf("Haven't implemented store32 to address 0x%08x with val 0x%08x", addr, val)
 }
 
@@ -198,7 +260,6 @@ func (b *Bus) Store16(addr uint32, val uint16) error {
 	return fmt.Errorf("Haven't implemented store16 into address 0x%08x with val 0x%04x", addr, val)
 }
 
-
 // Store8 store 8 bit value into memory
 func (b *Bus) Store8(addr uint32, val uint8) error {
 	absAddr := MaskRegion(addr)
@@ -212,6 +273,6 @@ func (b *Bus) Store8(addr uint32, val uint8) error {
 		log.Infof("(Not implemented yet) EXPANSION_2 8bit write 0x%02x to offset:0x%08x, absAddr:0x%02x", val, offset, absAddr)
 		return nil
 	}
-	
+
 	return fmt.Errorf("Haven't implemented store8 into address 0x%08x with val 0x%02x", addr, val)
 }
