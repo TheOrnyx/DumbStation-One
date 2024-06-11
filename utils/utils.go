@@ -3,6 +3,7 @@ package utils
 
 import (
 	"math"
+	"unsafe"
 )
 
 // BytesToUint32 Convert 4 bytes to one little endian uint32 value
@@ -79,10 +80,13 @@ func SubSigned16(val1, val2 uint32) (result uint32, overflowed bool) {
 
 // BoolToUint32 convert cond to 0 or 1 and return
 func BoolToUint32(cond bool) uint32 {
-	var val uint32 = 0
-	if cond {
-		val = 1
-	}
+	// var val uint32 = 0
+	// if cond {
+	// 	val = 1
+	// }
 
-	return val
+	// return val
+	
+	// thanks https://dev.to/chigbeef_77/bool-int-but-stupid-in-go-3jb3
+	return uint32(*(*byte)(unsafe.Pointer(&cond)))
 }

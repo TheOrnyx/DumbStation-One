@@ -8,3 +8,4 @@ type Gpu struct {
 func NewGPU() Gpu {
 	return Gpu{gpuStat: NewGPUStat()}
 }
+
