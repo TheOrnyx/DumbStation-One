@@ -250,8 +250,11 @@ func (b *Bus) Store32(addr, val uint32) error {
 		case 0:
 			b.gpu.GP0(val)
 			return nil
+		case 4: // GP1
+			b.gpu.GP1(val)
+			return nil
 		default:
-			return fmt.Errorf("Unhandled GPU 32bit write 0x%08x to 0x%08x", val, absAddr)
+			return fmt.Errorf("Unhandled GPU 32bit write 0x%08x to 0x%08x, offset: %d", val, absAddr, offset)
 		}
 	}
 

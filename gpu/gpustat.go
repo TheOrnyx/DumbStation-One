@@ -107,3 +107,31 @@ func (g *GpuStat) dataReq(stat uint32) uint32 {
 	log.Panicf("Unknown DMA Direction %v", g.dmaDirection)
 	return 0
 }
+
+// softReset called by GP1(0x00), performs a soft reset on the gpustat
+// NOTE - this should write the like value 0x14802000 into GPUSTAT
+func (g *GpuStat) softReset()  {
+	// TODO - once again the guide sets bit15 as like texture disable and idk why
+	g.pageBaseX = 0
+	g.pageBaseY = 0
+	g.semiTransparency = 0
+	g.textureDepth = T4Bit
+	g.dithering = false
+	g.allowDrawToDisplay = false
+	g.useMaskForDrawing = false
+	g.avoidDrawOnMask = false
+	g.interlaceField = true
+	g.pageBaseY2 = 0
+	g.horizontalRes = HResFromFields(0,0)
+	g.verticalRes = Y240Lines
+	g.videoMode = Ntsc
+	g.displayDepth = D15Bit
+	g.verticalInterlace = false
+	g.displayDisabled = true
+	g.intRequest = false
+	g.dataRequest = 0
+	g.readyToRecvWord = true
+	g.readyToSendVram = false
+	g.readyToRecvDMA = true
+	g.dmaDirection = DirOff
+}
