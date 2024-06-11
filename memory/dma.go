@@ -149,6 +149,13 @@ type ChannelControl struct {
 	forceStart bool // force transfer start without waiting for DREQ - (Bit 28)
 	// rest aren't important so will just represent them with a uint8
 	upper uint8 // the unimportant bits 29-31
+
+	// DMA start address
+	base uint32
+
+	// Block stuff
+	blockSize uint16 // size of a block in words
+	blockCount uint16 // block count, used only when 'syncMode' is 'sliceMode' (guide says request mode)
 }
 
 // syncMode constants
@@ -216,4 +223,24 @@ func (c *ChannelControl) SetControl(val uint32) {
 	c.enabled = (val>>24)&0x01 != 0
 	c.forceStart = (val>>24)&0x01 != 0
 	c.upper = uint8((val >> 29) & 0x03)
+}
+
+// SetBase set channel base, only bits [0:23] are significant so only
+// 16mb are addressable by the DMA
+func (c *ChannelControl) SetBase(val uint32)  {
+	c.base = val & 0xffffff
+}
+
+// BlockControl get the value of the blockcontrol register
+func (c *ChannelControl) BlockControl() uint32 {
+	bs := uint32(c.blockSize)
+	bc := uint32(c.blockCount)
+
+	return (bc << 16) | bs
+}
+
+// SetBlockControl set the value of the block control register
+func (c *ChannelControl) SetBlockControl(val uint32)  {
+	c.blockSize = uint16(val)
+	c.blockCount = uint16(val >> 16)
 }

@@ -28,10 +28,14 @@ func (b *Bus) ReadDMAReg(offset uint32) uint32 {
 	case 0,1,2,3,4,5,6: // TODO - this is gross, kill later cbf rn
 		channel := b.dma.GetChannelRef(PortFromIndex(major))
 		switch minor {
+		case 0: // TODO - check this is base
+			return channel.base
+		case 4: // Block control register
+			return channel.BlockControl()
 		case 8:
 			return channel.Control()
 		default:
-			log.Panicf("unhandled DMA read at: 0x%08x", offset)
+			log.Panicf("unhandled DMA read at: 0x%08x, minor:0x%04x", offset, minor)
 		}
 
 	case 7: // Common DMA registers
@@ -41,7 +45,7 @@ func (b *Bus) ReadDMAReg(offset uint32) uint32 {
 		case 4:
 			return b.dma.Interrupt()
 		default:
-			log.Panicf("unhandled DMA read at: 0x%08x", offset)
+			log.Panicf("unhandled DMA read at: 0x%08x, minor:0x%04x", offset, minor)
 		}
 	}
 
@@ -59,10 +63,14 @@ func (b *Bus) SetDMAReg(offset, val uint32) {
 	case 0,1,2,3,4,5,6: // TODO - this is gross, kill later cbf rn
 		channel := b.dma.GetChannelRef(PortFromIndex(major))
 		switch minor {
+		case 0: // TODO - check this is base
+			channel.SetBase(val)
+		case 4: // block control
+			channel.SetBlockControl(val)
 		case 8:
 			channel.SetControl(val)
 		default:
-			log.Panicf("Unhandled DMA write: 0x%08x into 0x%08x", val, offset)
+			log.Panicf("Unhandled DMA write: 0x%08x into 0x%08x, minor:0x%04x", val, offset, minor)
 		}
 
 	case 7: // Common DMA registers
@@ -72,7 +80,7 @@ func (b *Bus) SetDMAReg(offset, val uint32) {
 		case 4:
 			b.dma.SetInterrupt(val)
 		default:
-			log.Panicf("Unhandled DMA write: 0x%08x into 0x%08x", val, offset)
+			log.Panicf("Unhandled DMA write: 0x%08x into 0x%08x, minor:0x%04x", val, offset, minor)
 		}
 
 	default:
