@@ -28,14 +28,57 @@ type Gpu struct {
 	displayLineStart      uint16 // Display output first line relative to VSYNC
 	displayLineEnd        uint16 // Display output last line relative to VSYNC
 
-	gp0CmdBuffer    CommandBuffer // Buffer containing current GP0 command
-	gp0CmdRemaining uint32        // Remaining words for the current GP0 command
-	gp0CmdMethod    func(g *Gpu)  // Function pointer to method for current GP0 command
+	gp0CmdBuffer      CommandBuffer // Buffer containing current GP0 command
+	gp0WordsRemaining uint32        // The remaining words for the current GP0 command
+	gp0Cmd            GP0Cmd        // the GPU command for holding the length, function etc
+	gp0Mode           GP0Mode       // The current mode of the GP0 register
 }
 
 // NewGPU create and return a new gpu
 func NewGPU() Gpu {
-	return Gpu{gpuStat: NewGPUStat()}
+	return Gpu{gpuStat: NewGPUStat(), gp0Mode: GP0ModeCommand}
+}
+
+// Status return the status register
+func (g *Gpu) Status() uint32 {
+	return g.gpuStat.Status()
+}
+
+// GP0 handle writes to the GP0 command register
+func (g *Gpu) GP0(val uint32) {
+	if g.gp0WordsRemaining == 0 {
+		opcode := (val >> 24) & 0xff // top byte contains opcode
+
+		cmd, valid := gp0Commands[opcode]
+		if !valid {
+			log.Panicf("Unhandled GP0 command: 0x%08x, Opcode:0x%02x", val, opcode)
+		}
+
+		g.gp0WordsRemaining = cmd.length
+		g.gp0Cmd = cmd
+		g.gp0CmdBuffer.clear()
+	}
+
+	g.gp0WordsRemaining -= 1
+
+	switch g.gp0Mode {
+	case GP0ModeCommand:
+		g.gp0CmdBuffer.pushWord(val)
+		
+		if g.gp0WordsRemaining == 0 {
+			// we have alll parameters, we can run command
+			g.gp0Cmd.runFunc(g, val)
+		}
+
+	case GP0ModeImgLoad:
+		// TODO - should copy pixel data to vram
+		if g.gp0WordsRemaining == 0 {
+			g.gp0Mode = GP0ModeCommand
+		}
+
+	default:
+		log.Panicf("Unknown GP0 command")
+	}
 }
 
 // GP1 Handle writes to the GP1 command register
@@ -45,6 +88,8 @@ func (g *Gpu) GP1(val uint32) {
 	switch opcode {
 	case 0x00: // GP1 reset
 		g.gp1Reset(val)
+	case 0x03:
+		g.gp1DisplayEnable(val)
 	case 0x04: // GP1 DMA direction
 		g.gp1SetDMADirection(val)
 	case 0x05:
@@ -100,7 +145,7 @@ func (g *Gpu) gp1DisplayMode(val uint32) {
 	stat.horizontalRes = HResFromFields(hr1, hr2)
 
 	stat.verticalRes = Y240Lines
-	if val&0x04 != 0 {
+	if val&0x4 != 0 {
 		stat.verticalRes = Y480Lines
 	}
 
@@ -153,4 +198,9 @@ func (g *Gpu) gp1SetHorizDisplayRange(val uint32) {
 func (g *Gpu) gp1SetVertDisplayRange(val uint32) {
 	g.displayLineStart = uint16(val & 0x3ff)
 	g.displayLineEnd = uint16((val >> 10) & 0x3ff)
+}
+
+// gp1DisplayEnable GP1(03h) - Display Enable
+func (g *Gpu) gp1DisplayEnable(val uint32)  {
+	g.gpuStat.displayDisabled = val & 1 != 0
 }

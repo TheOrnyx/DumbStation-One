@@ -129,13 +129,13 @@ func (b *Bus) Load32(addr uint32) (uint32, error) {
 	}
 
 	if offset, contains := GPU_RANGE.Contains(absAddr); contains {
-		log.Infof("(Not fully implemented yet) GPU 32bit read at: 0x%08x", absAddr)
 		switch offset {
 		case 4: // gpustat
 			// set bit 26, 27 and 28 to signal that gpu is ready for
 			// DMA and CPU access
-			return 0x1c000000, nil
+			return b.gpu.Status(), nil
 		default:
+			log.Infof("(Not fully implemented yet) GPU 32bit read at: 0x%08x", absAddr)
 			return 0, nil
 		}
 	}
@@ -356,7 +356,7 @@ func (b *Bus) doDMABlock(port Port)  {
 		case dirFromRam:
 			srcWord := b.ram.load32(currentAddr)
 			if port == PortGpu {
-				log.Infof("GPU data 0x%08x", srcWord)
+				b.gpu.GP0(srcWord)
 			} else {
 				log.Panicf("Unhandled DMA destination port %v", port)
 			}

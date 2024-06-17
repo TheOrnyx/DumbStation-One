@@ -81,3 +81,10 @@ const (
 	DirGPUReadToCPU DMADirection = 3 // NOTE - guide treats this as VRAMToCPU
 )
 
+// Type for states for the Gp0 command register
+type GP0Mode uint8
+
+const (
+	GP0ModeCommand GP0Mode = 0 // Default mode: Handling commands
+	GP0ModeImgLoad GP0Mode = 1 // Loading image into VRAM
+)

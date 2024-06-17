@@ -64,7 +64,11 @@ func (g *GpuStat) Status() uint32 {
 	// ignore bit 14
 	r |= utils.BoolToUint32(g.textureDisable) << 15
 	r |= g.horizontalRes.intoStatus()
-	r |= uint32(g.verticalRes) << 19
+
+	// FIXME - Temporarily killed as since we don't emulate bit31
+	// setting vres properly causes the BIOS to lock
+	// r |= uint32(g.verticalRes) << 19
+	
 	r |= uint32(g.videoMode) << 20
 	r |= uint32(g.displayDepth) << 21
 	r |= utils.BoolToUint32(g.verticalInterlace) << 22
