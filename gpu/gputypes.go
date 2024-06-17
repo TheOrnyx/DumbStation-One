@@ -78,6 +78,6 @@ const (
 	DirOff          DMADirection = 0
 	DirFifo         DMADirection = 1 // NOTE - guide states this as FIFO but specs say "?"
 	DirCPUToGP0     DMADirection = 2
-	DirGPUReadToCPU DMADirection = 3
+	DirGPUReadToCPU DMADirection = 3 // NOTE - guide treats this as VRAMToCPU
 )
 

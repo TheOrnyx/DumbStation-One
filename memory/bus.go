@@ -422,7 +422,8 @@ func (b *Bus) doDMALinkedList(port Port)  {
 
 			command := b.ram.load32(addr)
 
-			log.Infof("GPU command - 0x%08x", command)
+			// send command to the GPU
+			b.gpu.GP0(command)
 
 			remainingSize -= 1
 		}

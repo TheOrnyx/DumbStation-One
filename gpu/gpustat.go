@@ -9,43 +9,42 @@ import (
 //
 // NOTE - idk if this was smart to seperate it but idk at this point
 type GpuStat struct {
-	pageBaseX          uint8         // Texture pages base X coordinate (64 byte increment) - (Bits 0-4)
-	pageBaseY          uint8         // Texture pages base Y coordinate (256 line increment) - (Bit 5)
-	semiTransparency   uint8         // Semi transparency (not really sure what it does tbh) - (Bits 5-6)
-	textureDepth       TextureDepth  // The texture page color depth - (Bits 7-8)
-	dithering          bool          // Enable dithering from 24-bit to 15-bit - (Bit 9)
-	allowDrawToDisplay bool          // allow drawing to display area - (Bit 10)
-	useMaskForDrawing  bool          // Set Mask-Bit when drawing pixels - (Bit 11)
-	avoidDrawOnMask    bool          // Draw pixels, false=always, true=not to masked areas - (Bit 12)
-	interlaceField     bool          // NOTE avoid calling field directyl! use method for this!! - (Bit 13)
-	// flipHorizontally   bool          // Flip screen horizontally (somth about v1 only) - (Bit 14)
-	pageBaseY2         uint8         // (NOTE unsure) Texture page y Base 2 (only for 2MB VRAM) - (Bit 15)
-	horizontalRes      HorizontalRes // combination of the horizontal resolution bits - (Bits 16-18)
-	verticalRes        VerticalRes   // Vertical resolution (TODO - says smth about bit22) - (Bit 19)
-	videoMode          VideoMode     // VideoMode Either PAL or NTSC - (Bit 20)
-	displayDepth       DisplayDepth  // Display area color depth - (Bit 21)
-	verticalInterlace  bool          // vertical interlate - (Bit 22)
-	displayDisabled    bool          // when true display is disabled - (Bit 23)
-	intRequest         bool          // true when interrupt is requested (or active not sure TODO) - (Bit 24)
-	dataRequest        uint8         // TODO implement this with a method and stuff - (Bit 25)
-	readyToRecvWord    bool          // Ready to receive Cmd Word - (Bit 26)
-	readyToSendVram    bool          // Ready to send VRAM to CPU - (Bit 27)
-	readyToRecvDMA     bool          // Ready to receive DMA block - (Bit 28)
-	dmaDirection       DMADirection  // DMA Direction - (Bits 29-30)
+	pageBaseX           uint8         // Texture pages base X coordinate (64 byte increment) - (Bits 0-4)
+	pageBaseY           uint8         // Texture pages base Y coordinate (256 line increment) - (Bit 5)
+	semiTransparency    uint8         // Semi transparency (not really sure what it does tbh) - (Bits 5-6)
+	textureDepth        TextureDepth  // The texture page color depth - (Bits 7-8)
+	dithering           bool          // Enable dithering from 24-bit to 15-bit - (Bit 9)
+	allowDrawToDisplay  bool          // allow drawing to display area - (Bit 10)
+	forceSetMaskBit     bool          // Set Mask-Bit when drawing pixels - (Bit 11)
+	checkMaskBeforeDraw bool          // Draw pixels, false=always, true=not to masked areas - (Bit 12)
+	interlaceField      bool          // NOTE avoid calling field directyl! use method for this!! - (Bit 13)
+	textureDisable      bool          // when true disable textures (NOTE no PS2's have 2mb vram) - (Bit 15)
+	horizontalRes       HorizontalRes // combination of the horizontal resolution bits - (Bits 16-18)
+	verticalRes         VerticalRes   // Vertical resolution (TODO - says smth about bit22) - (Bit 19)
+	videoMode           VideoMode     // VideoMode Either PAL or NTSC - (Bit 20)
+	displayDepth        DisplayDepth  // Display area color depth - (Bit 21)
+	verticalInterlace   bool          // vertical interlate - (Bit 22)
+	displayDisabled     bool          // when true display is disabled - (Bit 23)
+	intRequest          bool          // true when interrupt is requested (or active not sure TODO) - (Bit 24)
+	dataRequest         uint8         // TODO implement this with a method and stuff - (Bit 25)
+	readyToRecvWord     bool          // Ready to receive Cmd Word - (Bit 26)
+	readyToSendVram     bool          // Ready to send VRAM to CPU - (Bit 27)
+	readyToRecvDMA      bool          // Ready to receive DMA block - (Bit 28)
+	dmaDirection        DMADirection  // DMA Direction - (Bits 29-30)
 	// NOTE - ignoring bit 31 for now cuz it seems confusing
 }
 
 // NewGPUStat create and return an initialized gpustat instace
 func NewGPUStat() GpuStat {
 	return GpuStat{
-		textureDepth: T4Bit,
-		interlaceField: true, // TODO - is this the same one as the 'field' in the guide??
-		horizontalRes: HResFromFields(0, 0),
-		verticalRes: Y240Lines,
-		videoMode: Ntsc,
-		displayDepth: D15Bit,
+		textureDepth:    T4Bit,
+		interlaceField:  true, // TODO - is this the same one as the 'field' in the guide??
+		horizontalRes:   HResFromFields(0, 0),
+		verticalRes:     Y240Lines,
+		videoMode:       Ntsc,
+		displayDepth:    D15Bit,
 		displayDisabled: true,
-		dmaDirection: DirOff,
+		dmaDirection:    DirOff,
 	}
 }
 
@@ -59,11 +58,11 @@ func (g *GpuStat) Status() uint32 {
 	r |= uint32(g.textureDepth) << 7
 	r |= utils.BoolToUint32(g.dithering) << 9
 	r |= utils.BoolToUint32(g.allowDrawToDisplay) << 10
-	r |= utils.BoolToUint32(g.useMaskForDrawing) << 11
-	r |= utils.BoolToUint32(g.avoidDrawOnMask) << 12
+	r |= utils.BoolToUint32(g.forceSetMaskBit) << 11
+	r |= utils.BoolToUint32(g.checkMaskBeforeDraw) << 12
 	r |= utils.BoolToUint32(g.interlaceField) << 13
 	// ignore bit 14
-	r |= uint32(g.pageBaseY2) << 15
+	r |= utils.BoolToUint32(g.textureDisable) << 15
 	r |= g.horizontalRes.intoStatus()
 	r |= uint32(g.verticalRes) << 19
 	r |= uint32(g.videoMode) << 20
@@ -80,7 +79,7 @@ func (g *GpuStat) Status() uint32 {
 	r |= 1 << 26
 	r |= 1 << 27
 	r |= 1 << 28
-	
+
 	r |= uint32(g.dmaDirection) << 29
 	r |= 0 << 31
 
@@ -110,7 +109,7 @@ func (g *GpuStat) dataReq(stat uint32) uint32 {
 
 // softReset called by GP1(0x00), performs a soft reset on the gpustat
 // NOTE - this should write the like value 0x14802000 into GPUSTAT
-func (g *GpuStat) softReset()  {
+func (g *GpuStat) softReset() {
 	// TODO - once again the guide sets bit15 as like texture disable and idk why
 	g.pageBaseX = 0
 	g.pageBaseY = 0
@@ -118,11 +117,11 @@ func (g *GpuStat) softReset()  {
 	g.textureDepth = T4Bit
 	g.dithering = false
 	g.allowDrawToDisplay = false
-	g.useMaskForDrawing = false
-	g.avoidDrawOnMask = false
+	g.forceSetMaskBit = false
+	g.checkMaskBeforeDraw = false
 	g.interlaceField = true
-	g.pageBaseY2 = 0
-	g.horizontalRes = HResFromFields(0,0)
+	g.textureDisable = false
+	g.horizontalRes = HResFromFields(0, 0)
 	g.verticalRes = Y240Lines
 	g.videoMode = Ntsc
 	g.displayDepth = D15Bit
