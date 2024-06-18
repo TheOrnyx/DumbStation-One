@@ -1,6 +1,9 @@
 package gpu
 
-import "github.com/TheOrnyx/psx-go/log"
+import (
+	"github.com/TheOrnyx/psx-go/log"
+	"github.com/TheOrnyx/psx-go/renderer"
+)
 
 // The GPU Struct
 //
@@ -32,11 +35,20 @@ type Gpu struct {
 	gp0WordsRemaining uint32        // The remaining words for the current GP0 command
 	gp0Cmd            GP0Cmd        // the GPU command for holding the length, function etc
 	gp0Mode           GP0Mode       // The current mode of the GP0 register
+
+	renderer *renderer.Renderer // The OpenGL Renderer
 }
 
 // NewGPU create and return a new gpu
 func NewGPU() Gpu {
-	return Gpu{gpuStat: NewGPUStat(), gp0Mode: GP0ModeCommand}
+	var err error
+	g := Gpu{gpuStat: NewGPUStat(), gp0Mode: GP0ModeCommand}
+	g.renderer, err = renderer.NewRenderer()
+	if err != nil {
+		log.Panicf("Failed to create renderer: %v", err)
+	}
+
+	return g
 }
 
 // Status return the status register
@@ -64,7 +76,7 @@ func (g *Gpu) GP0(val uint32) {
 	switch g.gp0Mode {
 	case GP0ModeCommand:
 		g.gp0CmdBuffer.pushWord(val)
-		
+
 		if g.gp0WordsRemaining == 0 {
 			// we have alll parameters, we can run command
 			g.gp0Cmd.runFunc(g, val)
@@ -206,19 +218,19 @@ func (g *Gpu) gp1SetVertDisplayRange(val uint32) {
 }
 
 // gp1DisplayEnable GP1(03h) - Display Enable
-func (g *Gpu) gp1DisplayEnable(val uint32)  {
-	g.gpuStat.displayDisabled = val & 1 != 0
+func (g *Gpu) gp1DisplayEnable(val uint32) {
+	g.gpuStat.displayDisabled = val&1 != 0
 }
 
 // gp1AcknowledgeInterrupt GP1(02h) - Acknowledge GPU Interrupt (IRQ1)
-func (g *Gpu) gp1AcknowledgeInterrupt()  {
+func (g *Gpu) gp1AcknowledgeInterrupt() {
 	g.gpuStat.intRequest = false
 }
 
 // gp1ResetCmdBuffer GP1(01h) - Reset Command Buffer
-func (g *Gpu) gp1ResetCmdBuffer()  {
+func (g *Gpu) gp1ResetCmdBuffer() {
 	g.gp0CmdBuffer.clear()
 	g.gp0WordsRemaining = 0
 	g.gp0Mode = GP0ModeCommand
-	// TODO - should clear command FIFO when implemented 
+	// TODO - should clear command FIFO when implemented
 }
