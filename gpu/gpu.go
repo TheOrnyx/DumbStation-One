@@ -88,6 +88,10 @@ func (g *Gpu) GP1(val uint32) {
 	switch opcode {
 	case 0x00: // GP1 reset
 		g.gp1Reset(val)
+	case 0x01:
+		g.gp1ResetCmdBuffer()
+	case 0x02:
+		g.gp1AcknowledgeInterrupt()
 	case 0x03:
 		g.gp1DisplayEnable(val)
 	case 0x04: // GP1 DMA direction
@@ -129,6 +133,7 @@ func (g *Gpu) gp1Reset(val uint32) {
 	g.displayLineEnd = 0x010 + 240
 
 	g.gpuStat.softReset() // TODO - check
+	g.gp1ResetCmdBuffer()
 }
 
 // Read retrieve the value of the read register
@@ -203,4 +208,17 @@ func (g *Gpu) gp1SetVertDisplayRange(val uint32) {
 // gp1DisplayEnable GP1(03h) - Display Enable
 func (g *Gpu) gp1DisplayEnable(val uint32)  {
 	g.gpuStat.displayDisabled = val & 1 != 0
+}
+
+// gp1AcknowledgeInterrupt GP1(02h) - Acknowledge GPU Interrupt (IRQ1)
+func (g *Gpu) gp1AcknowledgeInterrupt()  {
+	g.gpuStat.intRequest = false
+}
+
+// gp1ResetCmdBuffer GP1(01h) - Reset Command Buffer
+func (g *Gpu) gp1ResetCmdBuffer()  {
+	g.gp0CmdBuffer.clear()
+	g.gp0WordsRemaining = 0
+	g.gp0Mode = GP0ModeCommand
+	// TODO - should clear command FIFO when implemented 
 }

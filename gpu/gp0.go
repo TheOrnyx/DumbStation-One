@@ -109,6 +109,16 @@ func (g *Gpu) gp0QuadShadedOpaque()  {
 	log.Info("(Not implemented yet) Draw quad shaded opaque")
 }
 
+// gp0TriShadedOpaque GP0(30h) - Shaded three-point polygon, opaque
+func (g *Gpu) gp0TriShadedOpaque()  {
+	log.Info("(Not implemented yet) Draw triangle shaded opaque")
+}
+
+// gp0QuadBlendedOpaque GP0(2Ch) - Textured four-point polygon, opaque, texture-blending
+func (g *Gpu) gp0QuadBlendedOpaque()  {
+	log.Info("(Not implemented yet) Draw texture-blended opaque quad")
+}
+
 //////////////////
 // Command list //
 //////////////////
@@ -125,6 +135,8 @@ var gp0Commands map[uint32]GP0Cmd = map[uint32]GP0Cmd{
 	0x00: {0x00, 1, "NOP", func(g *Gpu, val uint32) { g.gp0Nop() }},
 	0x01: {0x01, 1, "Clear Cache", func(g *Gpu, val uint32) { g.gp0ClearCache() }},
 	0x28: {0x28, 5, "Monochrome four-point polygon, opaque", func(g *Gpu, val uint32) { g.gp0MonoQuadPolyOpaque(val) }},
+	0x2c: {0x2c, 9, "Textured four-point polygon, opaque, texture-blending", func(g *Gpu, val uint32) { g.gp0QuadBlendedOpaque() }},
+	0x30: {0x30, 6, "Shaded three-point polygon, opaque", func(g *Gpu, val uint32) { g.gp0TriShadedOpaque() }},
 	0x38: {0x38, 8, "Shaded four-point polygon, opaque", func(g *Gpu, val uint32) { g.gp0QuadShadedOpaque() }},
 	0xa0: {0xa0, 3, "GP0 Image Load", func(g *Gpu, val uint32) { g.gp0ImageLoad() }},
 	0xc0: {0xc0, 3, "Copy Rectangle (VRAM to CPU)/Image store", func(g *Gpu, val uint32) { g.gp0ImageStore() }},
