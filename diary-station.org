@@ -68,3 +68,23 @@ confusing stuff that differs from what the docs say
 Short update today but i'm too tired and it wasn't really that interesting.
 Oh yeah I also like changed around the CPU instruction system to use an array
 and stuff yesterday if that counts.
+
+* Day Five <2024-06-17 Mon>
+:LOGBOOK:
+CLOCK: [2024-06-17 Mon 20:33]--[2024-06-17 Mon 22:13] =>  1:40
+CLOCK: [2024-06-17 Mon 16:37]--[2024-06-17 Mon 17:52] =>  1:15
+:END:
+
+Didn't do much today, was studying for exam and shit so did a bit for the gpu
+but that was mostly it. I think i changed around my GP0 command shit so it uses
+a map now but i can't rember
+
+* Day Six <2024-06-18 Tue>
+:LOGBOOK:
+CLOCK: [2024-06-18 Tue 20:11]--[2024-06-18 Tue 23:04] =>  2:53
+:END:
+
+I did some stuff today, did some more work on the GPU and am now onto working
+on the openGL stuff. not much to say kinda bad at writing atm, i'll do a big
+update soon probs...
+
