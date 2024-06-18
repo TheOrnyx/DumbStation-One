@@ -4,8 +4,6 @@ import "github.com/TheOrnyx/psx-go/log"
 
 // This is for like commands and shit for GP0 cuz cbf putting it in the same file
 
-
-
 // gp0DrawMode GPO(0xE1) command for setting draw mode settings
 func (g *Gpu) gp0DrawMode(val uint32) {
 	stat := &g.gpuStat // can't be bothered typing g.gpuStat each time
@@ -66,7 +64,7 @@ func (g *Gpu) gp0Nop() {
 }
 
 // gp0ClearCache GP0(01h) - Clear Texture cache
-func (g *Gpu) gp0ClearCache()  {
+func (g *Gpu) gp0ClearCache() {
 	log.Info("Texture cache not implemented yet")
 }
 
@@ -76,18 +74,18 @@ func (g *Gpu) gp0MonoQuadPolyOpaque(val uint32) {
 }
 
 // gp0ImageLoad GP0(A0h) - Image load
-func (g *Gpu) gp0ImageLoad()  {
+func (g *Gpu) gp0ImageLoad() {
 	// param 2 contains image res
 	res := g.gp0CmdBuffer.at(2)
 
 	width := res & 0xffff
 	height := res >> 16
-	imgSize := width*height
+	imgSize := width * height
 
 	// If we have off number of pixels we must round up since we
 	// transfer 32bits at a time there'll be 16-bits padding in the
 	// last word
-	imgSize = (imgSize + 1) & (^ uint32(1))
+	imgSize = (imgSize + 1) & (^uint32(1))
 
 	// Store number of words expected for image
 	g.gp0WordsRemaining = imgSize / 2
@@ -95,7 +93,7 @@ func (g *Gpu) gp0ImageLoad()  {
 }
 
 // gp0ImageStore GP0(C0h) - Image Store
-func (g *Gpu) gp0ImageStore()  {
+func (g *Gpu) gp0ImageStore() {
 	res := g.gp0CmdBuffer.at(2)
 
 	width := res & 0xffff
@@ -105,17 +103,27 @@ func (g *Gpu) gp0ImageStore()  {
 }
 
 // gp0QuadShadedOpaque GP0(38h) - Shaded opaque Quadrilateral
-func (g *Gpu) gp0QuadShadedOpaque()  {
+func (g *Gpu) gp0QuadShadedOpaque() {
 	log.Info("(Not implemented yet) Draw quad shaded opaque")
 }
 
 // gp0TriShadedOpaque GP0(30h) - Shaded three-point polygon, opaque
-func (g *Gpu) gp0TriShadedOpaque()  {
-	log.Info("(Not implemented yet) Draw triangle shaded opaque")
+func (g *Gpu) gp0TriShadedOpaque() {
+	positions := []VRAMPos{
+		PosFromGP0(g.gp0CmdBuffer.at(1)),
+		PosFromGP0(g.gp0CmdBuffer.at(3)),
+		PosFromGP0(g.gp0CmdBuffer.at(5)),
+	}
+
+	colors := []Color{
+		ColorFromGP0(g.gp0CmdBuffer.at(0)),
+		ColorFromGP0(g.gp0CmdBuffer.at(2)),
+		ColorFromGP0(g.gp0CmdBuffer.at(4)),
+	}
 }
 
 // gp0QuadBlendedOpaque GP0(2Ch) - Textured four-point polygon, opaque, texture-blending
-func (g *Gpu) gp0QuadBlendedOpaque()  {
+func (g *Gpu) gp0QuadBlendedOpaque() {
 	log.Info("(Not implemented yet) Draw texture-blended opaque quad")
 }
 
@@ -126,7 +134,7 @@ func (g *Gpu) gp0QuadBlendedOpaque()  {
 // GP0 command struct
 type GP0Cmd struct {
 	opcode  uint32                   // the opcode
-	length  uint32                    // The number of commands for this command
+	length  uint32                   // The number of commands for this command
 	name    string                   // the name
 	runFunc func(g *Gpu, val uint32) // the run function
 }

@@ -92,3 +92,4 @@ func BoolToUint32(cond bool) uint32 {
 
 	return r
 }
+
