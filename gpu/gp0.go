@@ -1,6 +1,9 @@
 package gpu
 
-import "github.com/TheOrnyx/psx-go/log"
+import (
+	"github.com/TheOrnyx/psx-go/log"
+	"github.com/TheOrnyx/psx-go/renderer"
+)
 
 // This is for like commands and shit for GP0 cuz cbf putting it in the same file
 
@@ -109,16 +112,16 @@ func (g *Gpu) gp0QuadShadedOpaque() {
 
 // gp0TriShadedOpaque GP0(30h) - Shaded three-point polygon, opaque
 func (g *Gpu) gp0TriShadedOpaque() {
-	positions := []VRAMPos{
-		PosFromGP0(g.gp0CmdBuffer.at(1)),
-		PosFromGP0(g.gp0CmdBuffer.at(3)),
-		PosFromGP0(g.gp0CmdBuffer.at(5)),
+	positions := []renderer.VRAMPos{
+		renderer.PosFromGP0(g.gp0CmdBuffer.at(1)),
+		renderer.PosFromGP0(g.gp0CmdBuffer.at(3)),
+		renderer.PosFromGP0(g.gp0CmdBuffer.at(5)),
 	}
 
-	colors := []Color{
-		ColorFromGP0(g.gp0CmdBuffer.at(0)),
-		ColorFromGP0(g.gp0CmdBuffer.at(2)),
-		ColorFromGP0(g.gp0CmdBuffer.at(4)),
+	colors := []renderer.Color{
+		renderer.ColorFromGP0(g.gp0CmdBuffer.at(0)),
+		renderer.ColorFromGP0(g.gp0CmdBuffer.at(2)),
+		renderer.ColorFromGP0(g.gp0CmdBuffer.at(4)),
 	}
 }
 
