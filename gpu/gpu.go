@@ -40,13 +40,8 @@ type Gpu struct {
 }
 
 // NewGPU create and return a new gpu
-func NewGPU() Gpu {
-	var err error
-	g := Gpu{gpuStat: NewGPUStat(), gp0Mode: GP0ModeCommand}
-	g.renderer, err = renderer.NewRenderer()
-	if err != nil {
-		log.Panicf("Failed to create renderer: %v", err)
-	}
+func NewGPU(renderer *renderer.Renderer) Gpu {
+	g := Gpu{gpuStat: NewGPUStat(), gp0Mode: GP0ModeCommand, renderer: renderer}
 
 	return g
 }
@@ -233,4 +228,9 @@ func (g *Gpu) gp1ResetCmdBuffer() {
 	g.gp0WordsRemaining = 0
 	g.gp0Mode = GP0ModeCommand
 	// TODO - should clear command FIFO when implemented
+}
+
+// Quit quit gpu and do cleanup
+func (g *Gpu) Quit()  {
+	g.renderer.Quit()
 }

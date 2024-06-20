@@ -32,10 +32,6 @@ type Renderer struct {
 // NewRenderer create and initialize a new renderer object
 func NewRenderer() (*Renderer, error) {
 	r := new(Renderer)
-	err := sdl.Init(sdl.INIT_VIDEO)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to initialize SDL: %v", err)
-	}
 
 	sdl.GLSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_CORE)
 	sdl.GLSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 3)

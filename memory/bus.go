@@ -12,12 +12,12 @@ type Bus struct {
 	bios *Bios
 	ram  Ram
 	dma  Dma // the DMA registers
-	gpu gpu.Gpu
+	gpu *gpu.Gpu
 }
 
 // NewBus create and return a new bus object
-func NewBus(bios *Bios) *Bus {
-	return &Bus{bios: bios, ram: NewRam(), dma: NewDMA(), gpu: gpu.NewGPU()}
+func NewBus(bios *Bios, gpu *gpu.Gpu) *Bus {
+	return &Bus{bios: bios, ram: NewRam(), dma: NewDMA(), gpu: gpu}
 }
 
 // ReadDMAReg read the dma register
