@@ -3,6 +3,7 @@ package renderer
 import (
 	"fmt"
 	"os"
+	"unsafe"
 
 	"github.com/TheOrnyx/psx-go/log"
 	"github.com/go-gl/gl/v3.3-core/gl"
@@ -38,6 +39,7 @@ func NewRenderer() (*Renderer, error) {
 	sdl.GLSetAttribute(sdl.GL_CONTEXT_PROFILE_MASK, sdl.GL_CONTEXT_PROFILE_CORE)
 	sdl.GLSetAttribute(sdl.GL_CONTEXT_MAJOR_VERSION, 3)
 	sdl.GLSetAttribute(sdl.GL_CONTEXT_MINOR_VERSION, 3)
+	sdl.GLSetAttribute(sdl.GL_CONTEXT_FLAGS, sdl.GL_CONTEXT_DEBUG_FLAG)
 
 	window, err := sdl.CreateWindow("PSX-GO", sdl.WINDOWPOS_CENTERED, sdl.WINDOWPOS_CENTERED, WIN_WIDTH, WIN_HEIGHT, sdl.WINDOW_OPENGL)
 	if err != nil {
@@ -57,6 +59,10 @@ func NewRenderer() (*Renderer, error) {
 		r.Quit()
 		return nil, fmt.Errorf("Failed to initialize OpenGL: %v", err)
 	}
+
+	// enable debug output
+	gl.Enable(gl.DEBUG_OUTPUT)
+	gl.DebugMessageCallback(DebugCallback, nil)
 
 	gl.ClearColor(0, 0, 0, 1.0)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
@@ -192,6 +198,29 @@ func (r *Renderer) PushTriangle(positions [3]VRAMPos, colors [3]Color)  {
 
 }
 
+// PushQuad Add a quad to the draw buffer
+func (r *Renderer) PushQuad(positions [4]VRAMPos, colors [4]Color)  {
+	// Make sure we have enough room left to queue the vertex.
+	if r.numVertices + 6 > VERTEX_BUFFER_LEN {
+		// Vertex attribute buffers are full, force early draw
+		r.Draw()
+	}
+
+	// Push first triangle
+	for i := range 3 {
+		r.positions.Set(r.numVertices, positions[i])
+		r.colors.Set(r.numVertices, colors[i])
+		r.numVertices+=1
+	}
+
+	// Push second triangle
+	for i := 1; i < 4; i++{
+		r.positions.Set(r.numVertices, positions[i])
+		r.colors.Set(r.numVertices, colors[i])
+		r.numVertices+=1
+	}
+}
+
 // Draw draw the buffered commands and reset the buffers
 //
 // TODO - improve later by using double buffering as this stalls the emulator
@@ -234,4 +263,10 @@ func (r *Renderer) Quit()  {
 	sdl.Quit()
 	r.Window.Destroy()
 	sdl.GLDeleteContext(r.GlContext)
+}
+
+// DebugCallback Debug callback function for OpenGL
+func DebugCallback(source, glType, id, severity uint32, length int32, msg string, userParam unsafe.Pointer)  {
+	log.Infof("[OpenGL Debug] Source: 0x%x, Type: 0x%x, ID: %d, Severity: 0x%x, Message: %s\n",
+		source, glType, id, severity, msg)
 }

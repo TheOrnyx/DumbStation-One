@@ -23,9 +23,9 @@ func PosFromGP0(val uint32) VRAMPos {
 
 // RGB color
 type Color struct {
-	r uint8
-	g uint8
-	b uint8
+	R uint8
+	G uint8
+	B uint8
 }
 
 // ColorFromGP0 Parse color from a GP0 param

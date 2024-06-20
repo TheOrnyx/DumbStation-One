@@ -77,7 +77,18 @@ func (g *Gpu) gp0ClearCache() {
 
 // gp0MonoQuadPolyOpaque GP0(28h) - Monochrome four-point polygon, opaque
 func (g *Gpu) gp0MonoQuadPolyOpaque(val uint32) {
-	log.Infof("(not implemented yet) Draw quad :3")
+	positions := [4]renderer.VRAMPos{
+		renderer.PosFromGP0(g.gp0CmdBuffer.at(1)),
+		renderer.PosFromGP0(g.gp0CmdBuffer.at(2)),
+		renderer.PosFromGP0(g.gp0CmdBuffer.at(3)),
+		renderer.PosFromGP0(g.gp0CmdBuffer.at(4)),
+	}
+
+	// one color repeated 4 times
+	color := renderer.ColorFromGP0(g.gp0CmdBuffer.at(0))
+	colors := [4]renderer.Color{color, color, color, color}
+
+	g.renderer.PushQuad(positions, colors)
 }
 
 // gp0ImageLoad GP0(A0h) - Image load
@@ -111,7 +122,21 @@ func (g *Gpu) gp0ImageStore() {
 
 // gp0QuadShadedOpaque GP0(38h) - Shaded opaque Quadrilateral
 func (g *Gpu) gp0QuadShadedOpaque() {
-	log.Info("(Not implemented yet) Draw quad shaded opaque")
+	positions := [4]renderer.VRAMPos{
+		renderer.PosFromGP0(g.gp0CmdBuffer.at(1)),
+		renderer.PosFromGP0(g.gp0CmdBuffer.at(3)),
+		renderer.PosFromGP0(g.gp0CmdBuffer.at(5)),
+		renderer.PosFromGP0(g.gp0CmdBuffer.at(7)),
+	}
+
+	colors := [4]renderer.Color{
+		renderer.ColorFromGP0(g.gp0CmdBuffer.at(0)),
+		renderer.ColorFromGP0(g.gp0CmdBuffer.at(2)),
+		renderer.ColorFromGP0(g.gp0CmdBuffer.at(4)),
+		renderer.ColorFromGP0(g.gp0CmdBuffer.at(6)),
+	}
+
+	g.renderer.PushQuad(positions, colors)
 }
 
 // gp0TriShadedOpaque GP0(30h) - Shaded three-point polygon, opaque
@@ -133,7 +158,20 @@ func (g *Gpu) gp0TriShadedOpaque() {
 
 // gp0QuadBlendedOpaque GP0(2Ch) - Textured four-point polygon, opaque, texture-blending
 func (g *Gpu) gp0QuadBlendedOpaque() {
-	log.Info("(Not implemented yet) Draw texture-blended opaque quad")
+	positions := [4]renderer.VRAMPos{
+		renderer.PosFromGP0(g.gp0CmdBuffer.at(1)),
+		renderer.PosFromGP0(g.gp0CmdBuffer.at(3)),
+		renderer.PosFromGP0(g.gp0CmdBuffer.at(5)),
+		renderer.PosFromGP0(g.gp0CmdBuffer.at(7)),
+	}
+
+	// HACK - we don't support textures yet so use solid color instead
+	color := renderer.Color{R: 129, G: 11, B: 156}
+	colors := [4]renderer.Color{
+		color, color, color, color,
+	}
+
+	g.renderer.PushQuad(positions, colors)
 }
 
 //////////////////
