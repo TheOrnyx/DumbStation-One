@@ -45,6 +45,10 @@ func (g *Gpu) gp0SetDrawOffset(val uint32) {
 	// values are 11bit two's complement signed values so shift to force sign extension
 	g.drawXOffset = int16(x<<5) >> 5
 	g.drawYOffset = int16(y<<5) >> 5
+
+	// HACK - Force display when changing offset since we don't have proper timings yet
+	log.Info("Running renderer display in gp0SetDrawOffset")
+	g.renderer.Display()
 }
 
 // gp0SetTextureWindow GP0(E2h) - Set Texture Window
@@ -112,17 +116,19 @@ func (g *Gpu) gp0QuadShadedOpaque() {
 
 // gp0TriShadedOpaque GP0(30h) - Shaded three-point polygon, opaque
 func (g *Gpu) gp0TriShadedOpaque() {
-	positions := []renderer.VRAMPos{
+	positions := [3]renderer.VRAMPos{
 		renderer.PosFromGP0(g.gp0CmdBuffer.at(1)),
 		renderer.PosFromGP0(g.gp0CmdBuffer.at(3)),
 		renderer.PosFromGP0(g.gp0CmdBuffer.at(5)),
 	}
 
-	colors := []renderer.Color{
+	colors := [3]renderer.Color{
 		renderer.ColorFromGP0(g.gp0CmdBuffer.at(0)),
 		renderer.ColorFromGP0(g.gp0CmdBuffer.at(2)),
 		renderer.ColorFromGP0(g.gp0CmdBuffer.at(4)),
 	}
+
+	g.renderer.PushTriangle(positions, colors)
 }
 
 // gp0QuadBlendedOpaque GP0(2Ch) - Textured four-point polygon, opaque, texture-blending

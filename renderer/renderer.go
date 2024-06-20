@@ -64,12 +64,12 @@ func NewRenderer() (*Renderer, error) {
 
 	// Shader stuff
 
-	vertSource, err := os.ReadFile("./shader.vert")
+	vertSource, err := os.ReadFile("./renderer/shader.vert")
 	if err != nil {
 		return nil, fmt.Errorf("Failed to open vertex shader src: %v", err)
 	}
 
-	fragSource, err := os.ReadFile("./shader.frag")
+	fragSource, err := os.ReadFile("./renderer/shader.frag")
 	if err != nil {
 		return nil, fmt.Errorf("Failed to open fragment shader src: %v", err)
 	}
@@ -77,17 +77,160 @@ func NewRenderer() (*Renderer, error) {
 	vertShader := compileShader(vertSource, gl.VERTEX_SHADER)
 	fragShader := compileShader(fragSource, gl.FRAGMENT_SHADER)
 
+	// Link the program and then use it
+	program := linkProgram([]uint32{vertShader, fragShader})
+	gl.UseProgram(program)
+
+	// generate vertex attribute object to hold vertex attributes
+	var vao uint32 = 0
+	gl.GenVertexArrays(1, &vao)
+	// bind the VAO
+	gl.BindVertexArray(vao)
+
+	// Setup position attribute
+	// Create buffer holding the positions
+	positions := NewBuffer[VRAMPos]()
+
+	// retrieve index for the attribute in shader and enable it
+	index := findProgramAttrib(program, "vertex_position")
+	gl.EnableVertexAttribArray(index)
+
+	// link buffer and index: 2 non-normalized GLshort attributes
+	gl.VertexAttribIPointer(index, 2, gl.SHORT, 0, nil)
+
+	// Color stuff
+	// Setup color attribute and bind it
+	colors := NewBuffer[Color]()
+
+	index = findProgramAttrib(program, "vertex_color")
+	gl.EnableVertexAttribArray(index)
+
+	// Link buffer and the index: 3 non-normalized GLByte
+	// attributes. Should send data untouched to vertex shader
+	gl.VertexAttribIPointer(index, 3, gl.UNSIGNED_BYTE, 0, nil)
+
+	r.vertexShader = vertShader
+	r.fragmentShader = fragShader
+	r.program = program
+	r.vertexArrayObject = vao
+	r.positions = positions
+	r.colors = colors
+	r.numVertices = 0
+	
 	return r, nil
 }
 
 // compileShader compile and return the shader
 func compileShader(source []byte, shaderType uint32) uint32 {
-	log.Panicf("unimplemented")
-	return 0
+	shader := gl.CreateShader(shaderType)
+
+	// Attempt to compile shader
+	cStr, free := gl.Strs(string(source)+"\x00")
+	defer free()
+
+	gl.ShaderSource(shader, 1, cStr, nil)
+	gl.CompileShader(shader)
+
+	// Extra bit of error checking in case we're not using debug
+	// opengl context
+	status := int32(gl.FALSE)
+	gl.GetShaderiv(shader, gl.COMPILE_STATUS, &status)
+
+	if status != gl.TRUE {
+		log.Panic("Shader compilation failed!")
+	}
+	
+	return shader
+}
+
+// linkProgram Link the shaders to the program
+func linkProgram(shaders []uint32) uint32 {
+	var program uint32
+
+	program = gl.CreateProgram()
+
+	for i := range shaders {
+		gl.AttachShader(program, shaders[i])
+	}
+
+	gl.LinkProgram(program)
+
+	var status int32 = gl.FALSE
+	gl.GetProgramiv(program, gl.LINK_STATUS, &status)
+
+	if status != gl.TRUE {
+		log.Panic("Opengl program linking failed!")
+	}
+	
+	return program
+}
+
+// findProgramAttrib return index of attribute attribute in program
+func findProgramAttrib(program uint32, attr string) uint32 {
+	index := gl.GetAttribLocation(program, gl.Str(attr+"\x00"))
+
+	if index < 0 {
+		log.Panicf("Attribute %s, not found in program", attr)
+	}
+
+	return uint32(index)
+}
+
+// PushTriangle Add a triangle to the draw buffer
+func (r *Renderer) PushTriangle(positions [3]VRAMPos, colors [3]Color)  {
+	// make sure we have enough room left to queue the vertex
+	if r.numVertices + 3 > VERTEX_BUFFER_LEN {
+		log.Info("Vertex attrivute buffers full, forcing draw")
+		r.Draw()
+	}
+
+	for i := range 3 {
+		r.positions.Set(r.numVertices, positions[i])
+		r.colors.Set(r.numVertices, colors[i])
+		r.numVertices += 1
+	}
+
+}
+
+// Draw draw the buffered commands and reset the buffers
+//
+// TODO - improve later by using double buffering as this stalls the emulator
+func (r *Renderer) Draw()  {
+	// Make sure all the data from persisent mappings is flushed to
+	// the buffer
+	gl.MemoryBarrier(gl.CLIENT_MAPPED_BUFFER_BARRIER_BIT)
+
+	gl.DrawArrays(gl.TRIANGLES, 0, int32(r.numVertices))
+
+	// Wait for GPU to complete
+	sync := gl.FenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0)
+
+	for  {
+		r := gl.ClientWaitSync(sync, gl.SYNC_FLUSH_COMMANDS_BIT, 10000000)
+
+		if r == gl.ALREADY_SIGNALED || r == gl.CONDITION_SATISFIED {
+			// drawing is finished
+			break
+		}
+	}
+
+	// reset buffers
+	r.numVertices = 0
+}
+
+// Display Draw the buffered commands and display them
+func (r *Renderer) Display()  {
+	r.Draw()
+	r.Window.GLSwap()
 }
 
 // Quit quit and close the renderer
 func (r *Renderer) Quit()  {
+	gl.DeleteVertexArrays(1, &r.vertexArrayObject)
+	gl.DeleteShader(r.vertexShader)
+	gl.DeleteShader(r.fragmentShader)
+	gl.DeleteProgram(r.program)
+	
 	sdl.Quit()
 	r.Window.Destroy()
 	sdl.GLDeleteContext(r.GlContext)

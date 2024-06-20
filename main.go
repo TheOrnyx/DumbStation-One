@@ -15,7 +15,7 @@ func main() {
 
 	bus := memory.NewBus(bios)
 	cpu := cpu.NewCPU(bus)
-
+	
 	for  {
 		cpu.RunNextInstruction()
 	}

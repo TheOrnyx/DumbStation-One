@@ -1,11 +1,7 @@
 package gpu
 
 import (
-	"unsafe"
-
 	"github.com/TheOrnyx/psx-go/log"
-	"github.com/TheOrnyx/psx-go/utils"
-	"github.com/go-gl/gl/v3.3-core/gl"
 )
 
 // NOTE - i kinda just made this it's own file cuz I can't be bothered

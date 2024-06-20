@@ -39,14 +39,14 @@ func AddSigned16(val1, val2 uint32) (result uint32, overflowed bool) {
 	}
 
 	return uint32(int32(res)), false
-	
+
 	// origBit := (signedVal >> 31)
 
 	// res := signedVal + signedImm
 	// if res >> 31 != origBit {
 	// 	return 0x00, true
 	// }
-	
+
 	// return uint32(res), false
 }
 
@@ -73,7 +73,7 @@ func SubSigned16(val1, val2 uint32) (result uint32, overflowed bool) {
 // 	if cond {
 // 		res = 1
 // 	}
-	
+
 // 	return T(res)
 // }
 
@@ -83,7 +83,7 @@ func SubSigned16(val1, val2 uint32) (result uint32, overflowed bool) {
 // https://dev.to/chigbeef_77/bool-int-but-stupid-in-go-3jb3 but i
 // should probs check later
 func BoolToUint32(cond bool) uint32 {
-	var r uint32;
+	var r uint32
 	if cond {
 		r = 1
 	} else {
@@ -92,4 +92,3 @@ func BoolToUint32(cond bool) uint32 {
 
 	return r
 }
-

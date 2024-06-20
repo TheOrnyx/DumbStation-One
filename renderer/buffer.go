@@ -1,9 +1,9 @@
 package renderer
 
 import (
-	"log"
 	"unsafe"
 
+	"github.com/TheOrnyx/psx-go/log"
 	"github.com/go-gl/gl/v3.3-core/gl"
 )
 
