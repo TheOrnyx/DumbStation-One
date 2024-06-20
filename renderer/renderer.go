@@ -26,6 +26,7 @@ type Renderer struct {
 	positions Buffer[VRAMPos] // Buffer containing vertex positions
 	colors Buffer[Color] // Buffer containing vertex colors
 	numVertices uint32 // Current number of vertices in the buffers
+	uniformOffset int32 // Index of the "offset" shader uniform
 }
 
 // NewRenderer create and initialize a new renderer object
@@ -115,6 +116,9 @@ func NewRenderer() (*Renderer, error) {
 	// attributes. Should send data untouched to vertex shader
 	gl.VertexAttribIPointer(index, 3, gl.UNSIGNED_BYTE, 0, nil)
 
+	uniformOffset := gl.GetUniformLocation(program, gl.Str("offset"+"\x00")) // TODO - check
+	gl.Uniform2i(uniformOffset, 0, 0)
+
 	r.vertexShader = vertShader
 	r.fragmentShader = fragShader
 	r.program = program
@@ -122,6 +126,7 @@ func NewRenderer() (*Renderer, error) {
 	r.positions = positions
 	r.colors = colors
 	r.numVertices = 0
+	r.uniformOffset = uniformOffset
 	
 	return r, nil
 }
@@ -269,4 +274,12 @@ func (r *Renderer) Quit()  {
 func DebugCallback(source, glType, id, severity uint32, length int32, msg string, userParam unsafe.Pointer)  {
 	log.Infof("[OpenGL Debug] Source: 0x%x, Type: 0x%x, ID: %d, Severity: 0x%x, Message: %s\n",
 		source, glType, id, severity, msg)
+}
+
+// SetDrawOffset Set value of the uniform draw offset
+func (r *Renderer) SetDrawOffset(x, y int16)  {
+	// Force draw for the primitives with the current offset
+	r.Draw()
+
+	gl.Uniform2i(r.uniformOffset, int32(x), int32(y))
 }

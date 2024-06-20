@@ -22,8 +22,8 @@ type Gpu struct {
 	drawAreaTop           uint16 // Top-most line of drawing area
 	drawAreaRight         uint16 // Right-most column of drawing area
 	drawAreaBottom        uint16 // Bottom-most line of drawing area
-	drawXOffset           int16  // Horizontal drawing offset applied to all the vertex
-	drawYOffset           int16  // Vertical drawing offset applied to all the vertex :D
+	// drawXOffset           int16  // Horizontal drawing offset applied to all the vertex
+	// drawYOffset           int16  // Vertical drawing offset applied to all the vertex :D
 	displayVramXStart     uint16 // First column of the display area in VRAM
 	displayVramYStart     uint16 // First line of the display area in VRAM
 	displayHorizStart     uint16 // Display output horizontal start relative to HSYNC

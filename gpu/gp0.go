@@ -43,8 +43,9 @@ func (g *Gpu) gp0SetDrawOffset(val uint32) {
 	y := uint16((val >> 11) & 0x7ff)
 
 	// values are 11bit two's complement signed values so shift to force sign extension
-	g.drawXOffset = int16(x<<5) >> 5
-	g.drawYOffset = int16(y<<5) >> 5
+	xOffset := int16(x<<5) >> 5
+	yOffset := int16(y<<5) >> 5
+	g.renderer.SetDrawOffset(xOffset, yOffset)
 
 	// HACK - Force display when changing offset since we don't have proper timings yet
 	log.Info("Running renderer display in gp0SetDrawOffset")
