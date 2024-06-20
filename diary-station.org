@@ -88,3 +88,11 @@ I did some stuff today, did some more work on the GPU and am now onto working
 on the openGL stuff. not much to say kinda bad at writing atm, i'll do a big
 update soon probs...
 
+* Day Seven <2024-06-20 Thu>
+:LOGBOOK:
+CLOCK: [2024-06-20 Thu 20:45]--[2024-06-21 Fri 00:41] =>  3:56
+:END:
+
+Despite being dead inside on my bed I got quite a bit done tonight. I managed to
+get the first bits rendering onto the screen so we're winning.
+I zoned out for a bit so time is a bit innacurate but it's going alright
