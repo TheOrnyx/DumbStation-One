@@ -141,6 +141,11 @@ func (cpu *CPU) executeSubInstr(instruction Instruction) {
 	SubOpcodes[instruction.subFunction()].runFunc(cpu, instruction)
 }
 
+// // load Generic memory read
+// func cpuLoad[T memory.Addressable](cpu *CPU, addr uint32) T {
+// 	return T 
+// }
+
 // load32 Load and return the value at given address addr
 func (cpu *CPU) load32(addr uint32) uint32 {
 	data, err := cpu.bus.Load32(addr)

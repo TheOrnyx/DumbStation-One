@@ -1,3 +1,7 @@
+/*
+ * The memory package, used for handling all the memory shit
+ * TODO - replace the multiple load and store functions with a generic one like the guide does
+*/
 package memory
 
 import (
@@ -102,12 +106,13 @@ func (b *Bus) SetDMAReg(offset, val uint32) {
 	}
 }
 
+// // Load generic Load
+// func (b *Bus) Load(addr Addressable) Addressable {
+// 	return AddressableUint32(0)
+// }
+
 // Load32 load and return the value at addr on the bus
 func (b *Bus) Load32(addr uint32) (uint32, error) {
-	// check that memory address isn't unaligned
-	// if addr % 4 != 0 {
-	// 	return 0xF, fmt.Errorf("Unaligned load32 address: 0x%x\n", addr)
-	// }
 
 	absAddr := MaskRegion(addr)
 
