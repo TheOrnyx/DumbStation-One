@@ -1,0 +1,12 @@
+#+TITLE: CDROM notes and info etc
+#+AUTHOR: Ornyx (duh)
+
+* Preface
+Yeah so once again i'm reaching the complex parts of this project where i need
+to make stupid notes in order to make sure that i can understand and write out
+what i need to do.
+
+* I/O Registers
+Alright so the I/O Registers have different meanings based on the "Index"
+So like based on the first bit of the index/status register the read and write
+operations change etc so I need to implement that later

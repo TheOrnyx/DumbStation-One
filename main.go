@@ -1,6 +1,9 @@
 package main
 
 import (
+	"runtime"
+
+	"github.com/TheOrnyx/psx-go/cdrom"
 	"github.com/TheOrnyx/psx-go/cpu"
 	"github.com/TheOrnyx/psx-go/gpu"
 	"github.com/TheOrnyx/psx-go/log"
@@ -10,6 +13,7 @@ import (
 )
 
 func main() {
+	runtime.LockOSThread()
 	bios, err := memory.NewBios("./data/SCPH1001.BIN")
 	if err != nil {
 		log.Panicf("Failed to create Bios: %v", err)
@@ -28,8 +32,15 @@ func main() {
 
 	gpu := gpu.NewGPU(renderer)
 	defer gpu.Quit()
+
+	cdrom, err := cdrom.NewCDROM("./data/Roms/tests/PeterLemon/HelloWorld/16BPP/HelloWorld16BPP.exe")
+	if err != nil {
+		gpu.Quit()
+		log.Panicf("Failed to create CDROM: %v", err)
+	}
 	
-	bus := memory.NewBus(bios, &gpu)
+	bus := memory.NewBus(bios, &gpu, &cdrom)
+	
 	cpu := cpu.NewCPU(bus)
 	
 	for  {

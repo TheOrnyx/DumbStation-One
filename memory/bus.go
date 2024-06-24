@@ -1,12 +1,13 @@
 /*
  * The memory package, used for handling all the memory shit
  * TODO - replace the multiple load and store functions with a generic one like the guide does
-*/
+ */
 package memory
 
 import (
 	"fmt"
 
+	"github.com/TheOrnyx/psx-go/cdrom"
 	"github.com/TheOrnyx/psx-go/gpu"
 	"github.com/TheOrnyx/psx-go/log"
 )
@@ -17,11 +18,12 @@ type Bus struct {
 	ram  Ram
 	dma  Dma // the DMA registers
 	gpu *gpu.Gpu
+	cdRom *cdrom.CDROM // the CDROM 
 }
 
 // NewBus create and return a new bus object
-func NewBus(bios *Bios, gpu *gpu.Gpu) *Bus {
-	return &Bus{bios: bios, ram: NewRam(), dma: NewDMA(), gpu: gpu}
+func NewBus(bios *Bios, gpu *gpu.Gpu, cdRom *cdrom.CDROM) *Bus {
+	return &Bus{bios: bios, ram: NewRam(), dma: NewDMA(), gpu: gpu, cdRom: cdRom}
 }
 
 // ReadDMAReg read the dma register
@@ -193,6 +195,10 @@ func (b *Bus) Load8(addr uint32) (uint8, error) {
 		return 0xff, nil
 	}
 
+	if offset, contains := CDROM_RANGE.Contains(absAddr); contains {
+		return b.cdRom.LoadByte(offset), nil
+	}
+
 	return 0xF, fmt.Errorf("Unkown Load8 at address 0x%08x", absAddr)
 }
 
@@ -313,6 +319,11 @@ func (b *Bus) Store8(addr uint32, val uint8) error {
 
 	if offset, contains := EXPANSION_2.Contains(absAddr); contains {
 		log.Infof("(Not implemented yet) EXPANSION_2 8bit write 0x%02x to offset:0x%08x, absAddr:0x%02x", val, offset, absAddr)
+		return nil
+	}
+
+	if offset, contains := CDROM_RANGE.Contains(absAddr); contains {
+		b.cdRom.StoreByte(offset, val)
 		return nil
 	}
 

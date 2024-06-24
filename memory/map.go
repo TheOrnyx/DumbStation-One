@@ -2,6 +2,7 @@ package memory
 
 // basically the same as the range used in psx-guide but here :P
 
+// A range type with length beign exclusive, used for bus mapping
 type Range struct {
 	start  uint32
 	length uint32
@@ -19,7 +20,8 @@ var (
 	IRQ_CONTROL   = Range{start: 0x1f801070, length: 8} // interrupr request
 	TIMERS_RANGE  = Range{start: 0x1f801100, length: 48} // TODO - check, idk the fucking memory map is confusing as shit
 	DMA_RANGE     = Range{start: 0x1f801080, length: 0x80}
-	GPU_RANGE     = Range{start: 0x1f801810, length: 16} // 0x1f801810 - 0x1f801820 
+	GPU_RANGE     = Range{start: 0x1f801810, length: 16} // 0x1f801810 - 0x1f801820
+	CDROM_RANGE   = Range{start: 0x1f801800, length: 4} // 0x1f801800 - 0x1f801803
 )
 
 // Contains whether or not addr is inside range
