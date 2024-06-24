@@ -38,14 +38,22 @@ func main() {
 		gpu.Quit()
 		log.Panicf("Failed to create CDROM: %v", err)
 	}
-	
+
 	bus := memory.NewBus(bios, &gpu, &cdrom)
-	
 	cpu := cpu.NewCPU(bus)
-	
-	for  {
+
+	emu := Emulator{
+		Cpu:      cpu,
+		Gpu:      &gpu,
+		Renderer: renderer,
+		Bus:      bus,
+		Cdrom:    &cdrom,
+	}
+	defer emu.Quit()
+
+	for {
 		for i := 0; i < 1000000; i++ {
-			cpu.RunNextInstruction()
+			emu.Step()
 		}
 
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
