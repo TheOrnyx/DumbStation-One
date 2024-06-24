@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/TheOrnyx/psx-go/emulator"
 	"runtime"
 
 	"github.com/TheOrnyx/psx-go/cdrom"
@@ -42,7 +43,7 @@ func main() {
 	bus := memory.NewBus(bios, &gpu, &cdrom)
 	cpu := cpu.NewCPU(bus)
 
-	emu := Emulator{
+	emu := emulator.Emulator{
 		Cpu:      cpu,
 		Gpu:      &gpu,
 		Renderer: renderer,

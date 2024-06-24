@@ -1,4 +1,4 @@
-package main
+package emulator
 
 import (
 	"github.com/TheOrnyx/psx-go/cdrom"
