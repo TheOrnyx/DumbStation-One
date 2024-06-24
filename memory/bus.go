@@ -12,13 +12,15 @@ import (
 	"github.com/TheOrnyx/psx-go/log"
 )
 
-// the memory bus
+// Bus the memory bus
 type Bus struct {
-	bios *Bios
-	ram  Ram
-	dma  Dma // the DMA registers
-	gpu *gpu.Gpu
-	cdRom *cdrom.CDROM // the CDROM 
+	bios  *Bios
+	ram   Ram
+	dma   Dma // the DMA registers
+	gpu   *gpu.Gpu
+	cdRom *cdrom.CDROM // the CDROM
+	iStat uint32       // 1F801070h I_STAT - Interrupt status register (R=Status, W=Acknowledge)
+	iMask uint32       // 1F801074h I_MASK - Interrupt mask register (R/W)
 }
 
 // NewBus create and return a new bus object
@@ -33,7 +35,7 @@ func (b *Bus) ReadDMAReg(offset uint32) uint32 {
 
 	switch major {
 	// per channel registers
-	case 0,1,2,3,4,5,6: // TODO - this is gross, kill later cbf rn
+	case 0, 1, 2, 3, 4, 5, 6: // TODO - this is gross, kill later cbf rn
 		channel := b.dma.GetChannelRef(PortFromIndex(major))
 		switch minor {
 		case 0: // base
@@ -70,7 +72,7 @@ func (b *Bus) SetDMAReg(offset, val uint32) {
 
 	switch major {
 	// per channel registers
-	case 0,1,2,3,4,5,6: // TODO - this is gross, kill later cbf rn
+	case 0, 1, 2, 3, 4, 5, 6: // TODO - this is gross, kill later cbf rn
 		port := PortFromIndex(major)
 		channel := b.dma.GetChannelRef(port)
 		switch minor {
@@ -126,9 +128,13 @@ func (b *Bus) Load32(addr uint32) (uint32, error) {
 		return b.ram.load32(offset), nil
 	}
 
-	if _, contains := IRQ_CONTROL.Contains(absAddr); contains {
-		log.Infof("(Not implemented yet) IRQ control 32bit read at: 0x%08x", absAddr)
-		return 0, nil
+	if offset, contains := IRQ_CONTROL.Contains(absAddr); contains {
+		log.Infof("(Not implemented yet) IRQ Control 32bit read at: 0x%08x", absAddr)
+		if offset == 0 {
+			return b.iStat, nil
+		}
+
+		return b.iMask, nil
 	}
 
 	if offset, contains := DMA_RANGE.Contains(absAddr); contains {
@@ -149,7 +155,7 @@ func (b *Bus) Load32(addr uint32) (uint32, error) {
 
 	if _, contains := TIMERS_RANGE.Contains(absAddr); contains {
 		log.Infof("(Not implemented yet) TIMERS 32bit read at 0x%08x", absAddr)
-		return 0, nil
+		return 0xffffffff, nil
 	}
 
 	return 0xF, fmt.Errorf("Unknown load32 at address 0x%08x", addr)
@@ -246,8 +252,13 @@ func (b *Bus) Store32(addr, val uint32) error {
 		return nil
 	}
 
-	if _, contains := IRQ_CONTROL.Contains(absAddr); contains {
+	if offset, contains := IRQ_CONTROL.Contains(absAddr); contains {
 		log.Infof("(Not implemented yet) IRQ Control 32bit write 0x%08x to 0x%08x", val, absAddr)
+		if offset == 0 {
+			b.iStat = val
+		} else {
+			b.iMask = val
+		}
 		return nil
 	}
 
@@ -301,7 +312,7 @@ func (b *Bus) Store16(addr uint32, val uint16) error {
 	}
 
 	if _, contains := IRQ_CONTROL.Contains(absAddr); contains {
-		log.Infof("(Not implemented yet) IRQ control 16-bit write 0x%04x to 0x%08x", val, absAddr)
+		log.Infof("(Not implemented yet) IRQ Control 16-bit write 0x%04x to 0x%08x", val, absAddr)
 		return nil
 	}
 
@@ -330,13 +341,12 @@ func (b *Bus) Store8(addr uint32, val uint8) error {
 	return fmt.Errorf("Haven't implemented store8 into address 0x%08x with val 0x%02x", addr, val)
 }
 
-
 //////////////////////////////////
 // Perform DMA Transfer methods //
 //////////////////////////////////
 
 // doDMA execute a DMA transfer to a port
-func (b *Bus) doDMA(port Port)  {
+func (b *Bus) doDMA(port Port) {
 	channel := b.dma.GetChannelRef(port)
 
 	// Don't care about splitting stuff up, do everything in one pass
@@ -352,7 +362,7 @@ func (b *Bus) doDMA(port Port)  {
 }
 
 // doDMABlock do dma block transfer
-func (b *Bus) doDMABlock(port Port)  {
+func (b *Bus) doDMABlock(port Port) {
 	channel := b.dma.GetChannelRef(port)
 	increment := channel.Step()
 
@@ -411,7 +421,7 @@ func (b *Bus) getDMASrcWord(port Port, addr, remainingSize uint32) uint32 {
 }
 
 // doDMALinkedList do dma transfer for linked list sync mode
-func (b *Bus) doDMALinkedList(port Port)  {
+func (b *Bus) doDMALinkedList(port Port) {
 	channel := b.dma.GetChannelRef(port)
 
 	addr := channel.base & 0x1ffffc
@@ -425,7 +435,7 @@ func (b *Bus) doDMALinkedList(port Port)  {
 		log.Panicf("Attempted linkedList DMA on port  %v", port)
 	}
 
-	for  {
+	for {
 		// in linked lsit mode each entry starts with a 'header'
 		// word. The high byte of this contains the number of words in
 		// the 'packet' (not counting the header word)
@@ -444,7 +454,7 @@ func (b *Bus) doDMALinkedList(port Port)  {
 			remainingSize -= 1
 		}
 
-		if header & 0x800000 != 0 {
+		if header&0x800000 != 0 {
 			break
 		}
 

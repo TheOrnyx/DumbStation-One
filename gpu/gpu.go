@@ -46,6 +46,11 @@ func NewGPU(renderer *renderer.Renderer) Gpu {
 	return g
 }
 
+// Display display
+func (g *Gpu) Display()  {
+	g.renderer.Display()
+}
+
 // Status return the status register
 func (g *Gpu) Status() uint32 {
 	return g.gpuStat.Status()
